@@ -34,4 +34,4 @@ jobs:
           username: root
           password: Web198743@
           source: "dist/"
-          target: "/root/dist"
+          target: "/root"
