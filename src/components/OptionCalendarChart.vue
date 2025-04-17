@@ -128,23 +128,37 @@ const updateChart = () => {
 
   const option: echarts.EChartsOption = {
     title: {
-      text: `日历差价看涨组合盈亏曲线 (短期期权盈亏: ${shortPL.toFixed(2)})`,
+      text: "日历差价看涨组合盈亏曲线",
+      subtext: `短期期权盈亏: ${shortPL.toFixed(2)}`,
       left: "center",
+      top: 10,
+      textStyle: {
+        color: "#333",
+        fontSize: 16,
+      },
+      subtextStyle: {
+        color: shortPL >= 0 ? "#35b115" : "#ee6666",
+        fontSize: 14,
+      },
     },
     tooltip: {
       trigger: "axis",
       formatter: (params: any) => {
         if (!Array.isArray(params)) return "";
         const price = params[0].axisValue;
+        const pl = params[0].data;
+        const plColor = pl >= 0 ? "#35b115" : "#ee6666";
         return `标的价格: ${price}
-短期期权盈亏: ${shortPL.toFixed(2)}
-组合总盈亏: ${params[0].data.toFixed(2)}`;
+短期期权盈亏: <span style="color:${
+          shortPL >= 0 ? "#35b115" : "#ee6666"
+        }">${shortPL.toFixed(2)}</span>
+组合总盈亏: <span style="color:${plColor}">${pl.toFixed(2)}</span>`;
       },
     },
-    legend: {
-      data: ["组合盈亏"],
-      top: 30,
-    },
+    // legend: {
+    //   data: ["组合盈亏"],
+    //   top: 60,
+    // },
     grid: {
       left: "3%",
       right: "4%",
