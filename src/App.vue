@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import OptionsCalculator from "./components/OptionsCalculator.vue";
-import "element-plus/dist/index.css";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 </script>
 
 <template>
   <div class="app">
-    <OptionsCalculator />
+    <header class="header">
+      <div class="nav-buttons">
+        <el-button @click="router.push('/')" type="primary">策略组合</el-button>
+        <el-button @click="router.push('/calendar-call')" type="success"
+          >日历差价看涨</el-button
+        >
+      </div>
+    </header>
+    <router-view></router-view>
   </div>
 </template>
 
@@ -17,6 +26,24 @@ import "element-plus/dist/index.css";
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   margin: 0;
+}
+
+.header {
+  background-color: #f8f9fa;
   padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #303133;
+  margin-bottom: 15px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 10px;
 }
 </style>
