@@ -100,10 +100,27 @@ const calculateTotalProfitLoss = (spotPrice: number): number => {
 const updateChart = () => {
   if (!chart) return;
 
+  // 验证所有策略的行权价格是否有效
+  const hasInvalidPrice = strategies.value.some((s) => {
+    return (
+      typeof s.strikePrice !== "number" ||
+      isNaN(s.strikePrice) ||
+      s.strikePrice <= 0
+    );
+  });
+
+  if (hasInvalidPrice) {
+    return; // 如果有无效价格，不更新图表
+  }
+
   // 找出所有行权价的平均值作为基准价格
   const avgStrikePrice =
-    strategies.value.reduce((sum, s) => sum + s.strikePrice, 0) /
+    strategies.value.reduce((sum, s) => sum + (s.strikePrice || 0), 0) /
     strategies.value.length;
+
+  if (!avgStrikePrice || isNaN(avgStrikePrice)) {
+    return; // 如果平均价格无效，不更新图表
+  }
 
   const xData: number[] = [];
   const yData: number[] = [];
@@ -358,6 +375,15 @@ onUnmounted(() => {
               <el-input
                 v-model.number="strategy.strikePrice"
                 type="number"
+                :min="0"
+                @input="
+                  (val) => {
+                    const numVal = Number(val);
+                    if (!numVal || numVal <= 0) {
+                      strategy.strikePrice = 100; // 设置默认值
+                    }
+                  }
+                "
                 :placeholder="
                   strategy.type === 'buyUnderlying'
                     ? '请输入买入价格'
