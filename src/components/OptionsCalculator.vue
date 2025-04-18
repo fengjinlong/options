@@ -376,14 +376,13 @@ onUnmounted(() => {
                 v-model.number="strategy.strikePrice"
                 type="number"
                 :min="0"
-                @input="
-                  (val) => {
-                    const numVal = Number(val);
-                    if (!numVal || numVal <= 0) {
-                      strategy.strikePrice = 100; // 设置默认值
-                    }
+                @blur="(e) => {
+                  const target = e.target as HTMLInputElement;
+                  const numVal = Number(target.value);
+                  if (!numVal || numVal <= 0) {
+                    strategy.strikePrice = 100; // 设置默认值
                   }
-                "
+                }"
                 :placeholder="
                   strategy.type === 'buyUnderlying'
                     ? '请输入买入价格'
