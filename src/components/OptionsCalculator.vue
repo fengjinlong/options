@@ -302,18 +302,8 @@ const updateChart = () => {
 
     const selected = legendSelected as Record<string, boolean>;
 
-    // 检查是否所有策略都被隐藏
-    const hasVisibleStrategy = Object.entries(selected).some(
-      ([key, value]) => key !== "总盈亏" && value === true
-    );
-
-    // 如果所有策略都被隐藏，也隐藏总盈亏
-    if (!hasVisibleStrategy && selected["总盈亏"]) {
-      chart.dispatchAction({
-        type: "legendToggleSelect",
-        name: "总盈亏",
-      });
-    }
+    // 更新总盈亏的计算（如果需要）
+    // 这里可以添加其他需要的逻辑，但不再自动隐藏总盈亏
   });
 };
 
