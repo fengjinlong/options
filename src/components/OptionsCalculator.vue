@@ -10,7 +10,7 @@ import {
   ElCard,
 } from "element-plus";
 import * as echarts from "echarts";
-import type { EChartsOption } from "echarts";
+import type { EChartsOption, LegendComponentOption } from "echarts";
 
 // 策略类型定义
 const strategyTypes = [
@@ -163,8 +163,6 @@ const updateChart = () => {
   // 找出最大盈利和最大亏损
   const maxProfit = Math.max(...yData);
   const maxLoss = Math.min(...yData);
-  // const maxProfitPrice = xData[yData.indexOf(maxProfit)];
-  // const maxLossPrice = xData[yData.indexOf(maxLoss)];
 
   const option: EChartsOption = {
     title: {
@@ -175,21 +173,33 @@ const updateChart = () => {
     tooltip: {
       trigger: "axis",
       formatter: (params: any) => {
+        if (!Array.isArray(params) || params.length === 0) return "";
         const price = params[0].data[0];
         let result = `标的价格: ${price.toFixed(2)}<br/>`;
-        params.forEach((param: any, index: number) => {
-          if (index === 0) {
+        params.forEach((param: any) => {
+          if (param.seriesName === "总盈亏") {
             result += `总盈亏: ${param.data[1].toFixed(2)}<br/>`;
           } else {
-            result += `策略${index}: ${param.data[1].toFixed(2)}<br/>`;
+            const strategyIndex = strategies.value.findIndex(
+              (s) => `策略${s.id}` === param.seriesName
+            );
+            if (strategyIndex !== -1) {
+              result += `${param.seriesName}: ${param.data[1].toFixed(2)}<br/>`;
+            }
           }
         });
         return result;
       },
     },
     legend: {
-      data: ["总盈亏", ...strategies.value.map((_, i) => `策略${i + 1}`)],
+      data: ["总盈亏", ...strategies.value.map((s) => `策略${s.id}`)],
       top: 30,
+      selected: {
+        总盈亏: true,
+        ...Object.fromEntries(
+          strategies.value.map((s) => [`策略${s.id}`, true])
+        ),
+      },
     },
     xAxis: {
       type: "value",
@@ -212,6 +222,7 @@ const updateChart = () => {
         lineStyle: { width: 1 },
         markLine: {
           symbol: ["none", "none"],
+          silent: true,
           data: [
             { yAxis: 0 },
             ...(maxProfit > 0
@@ -232,6 +243,7 @@ const updateChart = () => {
           },
         },
         markPoint: {
+          silent: true,
           data: [
             ...breakEvenPoints.map((price) => ({
               coord: [price, 0],
@@ -251,30 +263,6 @@ const updateChart = () => {
                 color: "#67C23A",
               },
             })),
-            ...(maxProfit > 0
-              ? [
-                  // {
-                  //   coord: [maxProfitPrice, maxProfit],
-                  //   name: "最大盈利点",
-                  //   value: `${maxProfit.toFixed(2)}`,
-                  //   itemStyle: {
-                  //     color: "#67C23A",
-                  //   },
-                  // },
-                ]
-              : []),
-            ...(maxLoss < 0
-              ? [
-                  // {
-                  //   coord: [maxLossPrice, maxLoss],
-                  //   name: "最大亏损点",
-                  //   value: `${maxLoss.toFixed(2)}`,
-                  //   itemStyle: {
-                  //     color: "#F56C6C",
-                  //   },
-                  // },
-                ]
-              : []),
           ],
           label: {
             formatter: "{b}\n{c}",
@@ -283,7 +271,7 @@ const updateChart = () => {
         },
       },
       ...individualStrategyData.map((data, index) => ({
-        name: `策略${index + 1}`,
+        name: `策略${strategies.value[index].id}`,
         type: "line" as const,
         data: xData.map((x, i) => [x, data[i]]),
         smooth: true,
@@ -292,7 +280,41 @@ const updateChart = () => {
     ],
   };
 
-  chart.setOption(option);
+  // 设置图表选项
+  chart.setOption(option, true);
+
+  // 添加图例事件监听
+  chart.off("legendselectchanged");
+  chart.on("legendselectchanged", () => {
+    if (!chart) return;
+
+    // 获取当前图例选中状态
+    const currentOption = chart.getOption();
+    if (
+      !currentOption ||
+      !currentOption.legend ||
+      !Array.isArray(currentOption.legend)
+    )
+      return;
+
+    const legendSelected = currentOption.legend[0].selected;
+    if (!legendSelected) return;
+
+    const selected = legendSelected as Record<string, boolean>;
+
+    // 检查是否所有策略都被隐藏
+    const hasVisibleStrategy = Object.entries(selected).some(
+      ([key, value]) => key !== "总盈亏" && value === true
+    );
+
+    // 如果所有策略都被隐藏，也隐藏总盈亏
+    if (!hasVisibleStrategy && selected["总盈亏"]) {
+      chart.dispatchAction({
+        type: "legendToggleSelect",
+        name: "总盈亏",
+      });
+    }
+  });
 };
 
 // 监听策略变化
