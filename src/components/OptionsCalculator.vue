@@ -10,7 +10,7 @@ import {
   ElCard,
 } from "element-plus";
 import * as echarts from "echarts";
-import type { EChartsOption, LegendComponentOption } from "echarts";
+import type { EChartsOption } from "echarts";
 
 // 策略类型定义
 const strategyTypes = [
@@ -299,8 +299,6 @@ const updateChart = () => {
 
     const legendSelected = currentOption.legend[0].selected;
     if (!legendSelected) return;
-
-    const selected = legendSelected as Record<string, boolean>;
 
     // 更新总盈亏的计算（如果需要）
     // 这里可以添加其他需要的逻辑，但不再自动隐藏总盈亏
