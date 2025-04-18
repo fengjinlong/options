@@ -43,6 +43,12 @@ let nextId = 2;
 // 图表实例
 let chart: echarts.ECharts | null = null;
 
+// 获取策略类型名称的辅助函数
+const getStrategyLabel = (type: string): string => {
+  const strategy = strategyTypes.find((s) => s.value === type);
+  return strategy ? strategy.label : type;
+};
+
 // 添加新策略
 const addStrategy = () => {
   strategies.value.push({
@@ -181,7 +187,7 @@ const updateChart = () => {
             result += `总盈亏: ${param.data[1].toFixed(2)}<br/>`;
           } else {
             const strategyIndex = strategies.value.findIndex(
-              (s) => `策略${s.id}` === param.seriesName
+              (s) => `${getStrategyLabel(s.type)}` === param.seriesName
             );
             if (strategyIndex !== -1) {
               result += `${param.seriesName}: ${param.data[1].toFixed(2)}<br/>`;
@@ -192,12 +198,15 @@ const updateChart = () => {
       },
     },
     legend: {
-      data: ["总盈亏", ...strategies.value.map((s) => `策略${s.id}`)],
+      data: [
+        "总盈亏",
+        ...strategies.value.map((s) => `${getStrategyLabel(s.type)}`),
+      ],
       top: 30,
       selected: {
         总盈亏: true,
         ...Object.fromEntries(
-          strategies.value.map((s) => [`策略${s.id}`, true])
+          strategies.value.map((s) => [`${getStrategyLabel(s.type)}`, true])
         ),
       },
     },
@@ -271,7 +280,7 @@ const updateChart = () => {
         },
       },
       ...individualStrategyData.map((data, index) => ({
-        name: `策略${strategies.value[index].id}`,
+        name: `${getStrategyLabel(strategies.value[index].type)}`,
         type: "line" as const,
         data: xData.map((x, i) => [x, data[i]]),
         smooth: true,
@@ -351,8 +360,7 @@ onUnmounted(() => {
         >
           <template #header>
             <div class="card-header">
-              <!-- <span>策略 {{ strategy.id }}</span> -->
-              <span>策略 {{ index + 1 }}</span>
+              <span>{{ getStrategyLabel(strategy.type) }}</span>
               <el-button
                 type="danger"
                 link
