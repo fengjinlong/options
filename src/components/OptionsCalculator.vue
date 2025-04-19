@@ -354,7 +354,7 @@ onUnmounted(() => {
       <el-button type="primary" @click="addStrategy">添加策略</el-button>
       <div class="strategies-container">
         <el-card
-          v-for="(strategy, index) in strategies"
+          v-for="strategy in strategies"
           :key="strategy.id"
           class="strategy-card"
         >
