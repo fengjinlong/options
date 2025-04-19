@@ -27,10 +27,18 @@ jobs:
       - name: Build Project
         run: pnpm build
 
+      # - name: Deploy dist to Server
+      #   uses: appleboy/scp-action@v0.1.4
+      #   with:
+      #     host: 49.232.8.45
+      #     username: root
+      #     password: Web198743@
+      #     source: "dist/"
+      #     target: "/var/www"
       - name: Deploy dist to Server
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: 49.232.8.45
+          host: 117.72.63.11
           username: root
           password: Web198743@
           source: "dist/"
