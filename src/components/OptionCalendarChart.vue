@@ -7,9 +7,8 @@
           <el-form-item label="行权价">
             <el-input-number
               v-model="shortStrike"
-              :min="60"
-              :max="140"
-              :step="1"
+              :min="0"
+              :step="0.5"
               @change="updateChart"
             />
           </el-form-item>
@@ -17,7 +16,6 @@
             <el-input-number
               v-model="shortPremium"
               :min="0"
-              :max="20"
               :step="0.5"
               @change="updateChart"
             />
@@ -25,9 +23,8 @@
           <el-form-item label="到期价格">
             <el-input-number
               v-model="shortExpiryPrice"
-              :min="60"
-              :max="140"
-              :step="1"
+              :min="0"
+              :step="0.5"
               @change="updateChart"
             />
           </el-form-item>
@@ -38,9 +35,8 @@
           <el-form-item label="行权价">
             <el-input-number
               v-model="longStrike"
-              :min="60"
-              :max="140"
-              :step="1"
+              :min="0"
+              :step="0.5"
               @change="updateChart"
             />
           </el-form-item>
@@ -48,7 +44,6 @@
             <el-input-number
               v-model="longPremium"
               :min="0"
-              :max="20"
               :step="0.5"
               @change="updateChart"
             />
