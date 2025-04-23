@@ -26,6 +26,7 @@ interface Strategy {
   type: string;
   strikePrice: number;
   premium: number;
+  quantity: number;
 }
 
 // 表单数据
@@ -35,6 +36,7 @@ const strategies = ref<Strategy[]>([
     type: "buyCall",
     strikePrice: 100,
     premium: 5,
+    quantity: 10,
   },
 ]);
 
@@ -56,6 +58,7 @@ const addStrategy = () => {
     type: "buyCall",
     strikePrice: 100,
     premium: 5,
+    quantity: 10,
   });
 };
 
@@ -72,25 +75,34 @@ const calculateSingleStrategyProfitLoss = (
   strategy: Strategy,
   spotPrice: number
 ): number => {
-  const { type, strikePrice, premium } = strategy;
+  const { type, strikePrice, premium, quantity } = strategy;
   const K = strikePrice;
   const P = premium;
   const S = spotPrice;
+  let singleUnitPnL = 0;
 
   switch (type) {
     case "buyUnderlying":
-      return S - K; // 买入标的的盈亏：现价 - 买入价
+      singleUnitPnL = S - K; // 买入标的的盈亏：现价 - 买入价
+      break;
     case "buyCall":
-      return S > K ? S - K - P : -P;
+      singleUnitPnL = S > K ? S - K - P : -P;
+      break;
     case "buyPut":
-      return S < K ? K - S - P : -P;
+      singleUnitPnL = S < K ? K - S - P : -P;
+      break;
     case "sellCall":
-      return S > K ? -(S - K) + P : P;
+      singleUnitPnL = S > K ? -(S - K) + P : P;
+      break;
     case "sellPut":
-      return S < K ? -(K - S) + P : P;
+      singleUnitPnL = S < K ? -(K - S) + P : P;
+      break;
     default:
-      return 0;
+      singleUnitPnL = 0;
   }
+
+  // 盈亏乘以数量
+  return singleUnitPnL * quantity;
 };
 
 // 计算组合策略的总盈亏
@@ -190,7 +202,10 @@ const updateChart = () => {
               (s) => `${getStrategyLabel(s.type)}` === param.seriesName
             );
             if (strategyIndex !== -1) {
-              result += `${param.seriesName}: ${param.data[1].toFixed(2)}<br/>`;
+              const strategy = strategies.value[strategyIndex];
+              result += `${param.seriesName} (数量: ${
+                strategy.quantity
+              }): ${param.data[1].toFixed(2)}<br/>`;
             }
           }
         });
@@ -417,6 +432,22 @@ onUnmounted(() => {
                 v-model.number="strategy.premium"
                 type="number"
                 placeholder="请输入期权费"
+              />
+            </el-form-item>
+
+            <el-form-item label="数量">
+              <el-input
+                v-model.number="strategy.quantity"
+                type="number"
+                :min="1"
+                @blur="(e) => {
+                  const target = e.target as HTMLInputElement;
+                  const numVal = Number(target.value);
+                  if (!numVal || numVal < 1) {
+                    strategy.quantity = 10; // 设置默认值
+                  }
+                }"
+                placeholder="请输入数量"
               />
             </el-form-item>
           </el-form>
