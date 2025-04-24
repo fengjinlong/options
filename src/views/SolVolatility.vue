@@ -139,7 +139,7 @@ const doInitChart = () => {
       return;
     }
 
-    // 初始化图表，添加更多参数以提高兼容性
+    // 初始化图表
     chart.value = echarts.init(chartContainer.value, null, {
       renderer: "canvas",
     });
@@ -153,347 +153,133 @@ const doInitChart = () => {
 
     const dates = volatilityData.value.map((item) => item.date);
     const values = volatilityData.value.map((item) => item.value);
-    const prices = volatilityData.value.map((item) => item.price || 0); // 添加默认值
+    const prices = volatilityData.value.map((item) => item.price);
 
-    console.log("Chart data:", dates.length, "dates,", values.length, "values");
-
-    // 计算均值和最大值
-    const avgVol = parseFloat(
-      (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
-    );
-    const maxVol = Math.max(...values);
-    const minVol = Math.min(...values);
-    const maxVolDate = dates[values.indexOf(maxVol)];
-
-    // 选择一个特定位置的数据点显示标签（中间位置）
-    let midIndex = 0;
-    let midValue = 0;
-
-    if (dates.length > 0 && values.length > 0) {
-      midIndex = Math.floor(dates.length / 3);
-      midValue = values[midIndex];
-    }
+    console.log("Data prepared:", {
+      dates: dates.length,
+      values: values.length,
+      prices: prices.length,
+      sample: {
+        date: dates[0],
+        value: values[0],
+        price: prices[0],
+      },
+    });
 
     const option = {
-      backgroundColor: "#f0fff5", // 浅绿色背景
-      title: {
-        text: `${coinDisplayName.value}历史波动率`,
-        left: "center",
-        textStyle: {
-          fontSize: 18,
-          fontWeight: "bold",
-          color: "#333",
-        },
-        subtext: `${timeWindow.value}天数据分析`,
-        subtextStyle: {
-          color: "#999",
-        },
-      },
+      animation: false,
       tooltip: {
-        show: true,
         trigger: "axis",
         axisPointer: {
-          type: "cross",
-          animation: false,
-          label: {
-            backgroundColor: "#6a7985",
-          },
+          type: "line",
+        },
+        backgroundColor: "rgba(255, 255, 255, 0.95)",
+        borderColor: "#ccc",
+        borderWidth: 1,
+        padding: [5, 10],
+        textStyle: {
+          color: "#333",
         },
         formatter: function (params: any[]) {
           if (!Array.isArray(params) || params.length === 0) return "";
 
           const date = params[0].axisValue;
           const volatility = params.find(
-            (p) => p.seriesName === "年化波动率"
+            (p) => p.seriesName === "波动率"
           )?.value;
-          const price = params.find((p) => p.seriesName === "价格数据")?.value;
+          const price = params.find((p) => p.seriesName === "价格")?.value;
 
           return `
-            <div style="padding: 12px;">
-              <div style="font-size: 14px; color: #333; margin-bottom: 10px; font-weight: bold;">
-                ${date}
-              </div>
-              <div style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #666; margin-right: 15px;">波动率:</span>
-                <span style="color: #00C853; font-weight: bold;">${
-                  volatility ? Number(volatility).toFixed(2) : "0.00"
-                }%</span>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="color: #666; margin-right: 15px;">价格:</span>
-                <span style="color: ${
-                  selectedCoin.value === "solana" ? "#9945ff" : "#F7931A"
-                }; font-weight: bold;">$${
-            price ? Number(price).toLocaleString() : "0.00"
-          }</span>
-              </div>
+            <div style="font-size: 14px;">
+              <div style="margin-bottom: 5px;">${date}</div>
+              <div>波动率: ${
+                typeof volatility === "number" ? volatility.toFixed(2) : "0"
+              }%</div>
+              <div>价格: $${
+                typeof price === "number" ? price.toLocaleString() : "0"
+              }</div>
             </div>
           `;
         },
-        backgroundColor: "rgba(255, 255, 255, 0.98)",
-        borderColor: "#eee",
-        borderWidth: 1,
-        padding: 0,
-        textStyle: {
-          color: "#333",
-          fontSize: 13,
-        },
-        extraCssText:
-          "box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); border-radius: 4px;",
       },
       grid: {
-        left: "5%",
-        right: "8%",
-        bottom: "12%",
+        left: "10%",
+        right: "10%",
+        bottom: "15%",
         top: "15%",
-        containLabel: true,
-      },
-      toolbox: {
-        feature: {
-          dataZoom: {
-            yAxisIndex: "none",
-          },
-          saveAsImage: {
-            pixelRatio: 2,
-          },
-          restore: {},
-        },
-        right: 20,
-        top: 20,
       },
       xAxis: {
         type: "category",
-        boundaryGap: false,
         data: dates,
-        axisLine: {
-          lineStyle: {
-            color: "#ccc",
-          },
-        },
-        axisLabel: {
-          color: "#666",
-          formatter: function (value: string) {
-            return value.substring(5);
-          },
-        },
-        nameLocation: "middle",
-        nameGap: 30,
-        splitLine: {
-          show: true,
-          lineStyle: {
-            color: ["#eee"],
-            type: "dashed",
-          },
-        },
       },
       yAxis: [
         {
           type: "value",
           name: "波动率",
-          position: "left",
-          axisLabel: {
-            formatter: "{value}%",
-            color: "#666",
-          },
-          splitLine: {
-            show: true,
-            lineStyle: {
-              color: ["#eee"],
-              type: "dashed",
-            },
-          },
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: "#00C853",
-            },
-          },
-          min: 0,
-          max: function (value: { max: number }) {
-            return Math.ceil(value.max * 1.2);
-          },
+          splitLine: { show: true },
         },
         {
           type: "value",
           name: "价格",
-          position: "right",
-          offset: 20,
-          axisLabel: {
-            formatter: "${value}",
-            color: "#666",
-          },
-          splitLine: {
-            show: false,
-          },
-          axisLine: {
-            show: true,
-            lineStyle: {
-              color: selectedCoin.value === "solana" ? "#9945ff" : "#F7931A",
-            },
-          },
-          scale: true,
-          splitNumber: 8,
-          boundaryGap: ["20%", "20%"],
-        },
-      ],
-      dataZoom: [
-        {
-          type: "inside",
-          start: 0,
-          end: 100,
-          zoomLock: false,
-          throttle: 100,
-          rangeMode: ["value", "value"],
-        },
-        {
-          type: "slider",
-          start: 0,
-          end: 100,
-          handleStyle: {
-            color: "#d3dee5",
-          },
-          textStyle: {
-            color: "#999",
-          },
-          borderColor: "#90979c",
+          splitLine: { show: false },
         },
       ],
       series: [
         {
-          name: "年化波动率",
+          name: "波动率",
           type: "line",
-          smooth: true,
-          symbol: "circle",
-          symbolSize: 6,
-          showSymbol: false,
-          emphasis: {
-            focus: "series",
-            scale: true,
-            lineStyle: {
-              width: 3,
-            },
-            itemStyle: {
-              color: "#00C853",
-              borderColor: "#fff",
-              borderWidth: 2,
-              shadowBlur: 10,
-              shadowColor: "rgba(0, 0, 0, 0.3)",
-            },
-          },
-          showAllSymbol: false,
-          hoverAnimation: true,
-          sampling: "average",
+          data: values,
           itemStyle: {
             color: "#00C853",
-            borderWidth: 2,
-            borderColor: "#fff",
-          },
-          lineStyle: {
-            width: 2,
-            color: "#00C853",
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              {
-                offset: 0,
-                color: "rgba(0, 200, 83, 0.2)",
-              },
-              {
-                offset: 1,
-                color: "rgba(0, 200, 83, 0.05)",
-              },
-            ]),
-          },
-          data: values,
-          z: 1,
-          tooltip: {
-            show: true,
           },
         },
         {
-          name: "价格数据",
+          name: "价格",
           type: "line",
           yAxisIndex: 1,
-          symbol: "none",
-          showSymbol: false,
-          emphasis: {
-            focus: "series",
-            scale: true,
-            lineStyle: {
-              width: 3,
-            },
-          },
-          lineStyle: {
-            width: 2,
-            color: selectedCoin.value === "solana" ? "#9945ff" : "#F7931A",
-            opacity: 1,
-          },
           data: prices,
           itemStyle: {
             color: selectedCoin.value === "solana" ? "#9945ff" : "#F7931A",
-          },
-          z: 2,
-          tooltip: {
-            show: true,
-          },
-        },
-        {
-          name: "价格数据辅助",
-          type: "line",
-          showSymbol: false,
-          symbol: "none",
-          lineStyle: {
-            width: 0,
-            opacity: 0,
-          },
-          data: prices,
-          tooltip: {
-            show: false,
-          },
-          itemStyle: {
-            opacity: 0,
-          },
-          emphasis: {
-            lineStyle: {
-              opacity: 0,
-            },
-            itemStyle: {
-              opacity: 0,
-            },
           },
         },
       ],
-      visualMap: {
-        show: false,
-        dimension: 0,
-        pieces: [
-          {
-            lte: 30,
-            color: "#00C853", // 绿色 - 低波动率
-          },
-          {
-            gt: 30,
-            lte: 50,
-            color: "#FFB300", // 黄色 - 中等波动率
-          },
-          {
-            gt: 50,
-            lte: 70,
-            color: "#FF7043", // 橙色 - 高波动率
-          },
-          {
-            gt: 70,
-            color: "#F44336", // 红色 - 极高波动率
-          },
-        ],
-      },
     };
+
+    // 打印完整的配置和数据用于调试
+    console.log("Complete chart option:", JSON.stringify(option, null, 2));
+    console.log("First few data points:", {
+      dates: dates.slice(0, 5),
+      values: values.slice(0, 5),
+      prices: prices.slice(0, 5),
+    });
 
     chart.value.setOption(option);
     console.log("Chart option set successfully");
 
-    // 设置图表交互事件监听
-    setupChartListeners();
+    // Add debugging information
+    console.log("Chart instance:", chart.value);
+    console.log("Chart container dimensions:", {
+      width: chartContainer.value?.clientWidth,
+      height: chartContainer.value?.clientHeight,
+    });
+    console.log("Chart data summary:", {
+      dates: dates.length,
+      values: values.length,
+      prices: prices.length,
+    });
+
+    // Add event listeners for debugging
+    chart.value.on("rendered", () => {
+      console.log("Chart rendered");
+    });
+
+    chart.value.on("mousemove", (params) => {
+      console.log("Mouse move event:", params);
+    });
+
+    chart.value.on("showTip", (params) => {
+      console.log("Show tip event:", params);
+    });
   } catch (err) {
     console.error("Error initializing chart:", err);
   }
