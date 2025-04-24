@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { el } from "element-plus/es/locales.mjs";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
