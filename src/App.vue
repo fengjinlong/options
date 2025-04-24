@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { el } from "element-plus/es/locales.mjs";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -11,6 +12,9 @@ const router = useRouter();
         <el-button @click="router.push('/')" type="primary">策略组合</el-button>
         <el-button @click="router.push('/calendar-call')" type="success"
           >日历差价看涨</el-button
+        >
+        <el-button @click="router.push('/sol-volatility')" type="warning"
+          >sol 历史波动率</el-button
         >
       </div>
     </header>
