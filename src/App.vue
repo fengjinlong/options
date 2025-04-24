@@ -14,7 +14,7 @@ const router = useRouter();
           >日历差价看涨</el-button
         >
         <el-button @click="router.push('/sol-volatility')" type="warning"
-          >sol 历史波动率</el-button
+          >历史波动率</el-button
         >
       </div>
     </header>

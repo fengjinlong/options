@@ -36,12 +36,16 @@ const fetchPriceData = async (coin: string, days: number) => {
 
   try {
     console.log(`Fetching ${coin} data for ${days} days...`);
+
+    // 多获取30天数据以便计算波动率
+    const requestDays = days + 30;
+
     const response = await axios.get(
       `https://api.coingecko.com/api/v3/coins/${coin}/market_chart`,
       {
         params: {
           vs_currency: "usd",
-          days: days,
+          days: requestDays,
           interval: "daily",
         },
         timeout: 15000,
@@ -87,7 +91,8 @@ const fetchPriceData = async (coin: string, days: number) => {
       throw new Error(`No valid returns calculated for ${coin}`);
     }
 
-    const window = Math.min(30, logReturns.length);
+    // 使用30天的滚动窗口计算波动率
+    const window = 30;
     const volatilities = [];
 
     for (let i = window - 1; i < logReturns.length; i++) {
@@ -111,7 +116,16 @@ const fetchPriceData = async (coin: string, days: number) => {
       });
     }
 
-    volatilityData.value[coinKey] = volatilities;
+    // 只保留最后days天的数据，确保与用户选择的时间范围匹配
+    const trimmedData = volatilities.slice(-days);
+
+    volatilityData.value[coinKey] = trimmedData;
+    console.log(
+      `Processed ${coinKey} data: ${trimmedData.length} days from ${
+        trimmedData[0].date
+      } to ${trimmedData[trimmedData.length - 1].date}`
+    );
+
     loading.value[coinKey] = false;
 
     // 延迟初始化图表，确保DOM已经准备好
@@ -422,9 +436,35 @@ window.addEventListener("resize", () => {
 // 更改时间窗口
 const changeTimeWindow = (days: number) => {
   timeWindow.value = days;
+
+  console.log(`Time window changed to ${days} days`);
+
+  // 清空当前数据，显示加载状态
+  volatilityData.value.solana = [];
+  volatilityData.value.bitcoin = [];
+
   fetchPriceData("solana", timeWindow.value);
   fetchPriceData("bitcoin", timeWindow.value);
 };
+
+// 辅助函数：格式化日期显示
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString("zh-CN");
+};
+
+// 获取日期范围
+const getDateRange = (coinKey: "solana" | "bitcoin") => {
+  const data = volatilityData.value[coinKey];
+  if (!data || data.length === 0) return "暂无数据";
+
+  const startDate = formatDate(data[0].date);
+  const endDate = formatDate(data[data.length - 1].date);
+
+  return `${startDate} 至 ${endDate}`;
+};
+
+const solanaDateRange = computed(() => getDateRange("solana"));
+const bitcoinDateRange = computed(() => getDateRange("bitcoin"));
 
 // 统计信息
 const getStatistics = (coinKey: "solana" | "bitcoin") => {
@@ -512,7 +552,7 @@ onMounted(async () => {
         <el-radio-button :label="60">60天</el-radio-button>
         <el-radio-button :label="90">90天</el-radio-button>
         <el-radio-button :label="180">180天</el-radio-button>
-        <el-radio-button :label="365">1年</el-radio-button>
+        <!-- <el-radio-button :label="365">1年</el-radio-button> -->
       </el-radio-group>
     </div>
 
@@ -520,6 +560,9 @@ onMounted(async () => {
       <!-- SOL Chart -->
       <div class="chart-section">
         <h2>SOL 历史波动率分析</h2>
+        <p v-if="!loading.solana && !error.solana" class="date-range">
+          {{ solanaDateRange }}
+        </p>
         <div v-if="loading.solana" class="loading-container">
           <el-skeleton :rows="8" animated />
         </div>
@@ -600,6 +643,9 @@ onMounted(async () => {
       <!-- BTC Chart -->
       <div class="chart-section">
         <h2>BTC 历史波动率分析</h2>
+        <p v-if="!loading.bitcoin && !error.bitcoin" class="date-range">
+          {{ bitcoinDateRange }}
+        </p>
         <div v-if="loading.bitcoin" class="loading-container">
           <el-skeleton :rows="8" animated />
         </div>
@@ -788,6 +834,14 @@ h2 {
 .tooltip-price {
   font-weight: 500;
   color: #2c3e50;
+}
+
+.date-range {
+  text-align: center;
+  margin-top: -15px;
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 14px;
 }
 
 @media (max-width: 1200px) {
