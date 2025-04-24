@@ -27,6 +27,10 @@ const volatilityData = ref({
   solana: [] as { date: string; value: number; price: number }[],
   bitcoin: [] as { date: string; value: number; price: number }[],
 });
+const customTooltip = ref({
+  solana: { show: false, x: 0, y: 0, date: "", volatility: 0, price: 0 },
+  bitcoin: { show: false, x: 0, y: 0, date: "", volatility: 0, price: 0 },
+});
 
 // 获取历史价格数据
 const fetchPriceData = async (coin: string, days: number) => {
@@ -44,11 +48,7 @@ const fetchPriceData = async (coin: string, days: number) => {
           days: days,
           interval: "daily",
         },
-        timeout: 15000, // 增加超时时间
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
+        timeout: 15000,
       }
     );
 
@@ -63,11 +63,32 @@ const fetchPriceData = async (coin: string, days: number) => {
     const prices = response.data.prices;
     console.log(`Received ${coin} price data:`, prices.length, "data points");
 
+    if (prices.length < 2) {
+      throw new Error(`Insufficient data points for ${coin}: ${prices.length}`);
+    }
+
     const logReturns = [];
     for (let i = 1; i < prices.length; i++) {
       const previousPrice = prices[i - 1][1];
       const currentPrice = prices[i][1];
+      if (
+        typeof previousPrice !== "number" ||
+        typeof currentPrice !== "number" ||
+        previousPrice <= 0 ||
+        currentPrice <= 0
+      ) {
+        console.warn(
+          `Invalid price data at index ${i}:`,
+          previousPrice,
+          currentPrice
+        );
+        continue;
+      }
       logReturns.push(Math.log(currentPrice / previousPrice));
+    }
+
+    if (logReturns.length === 0) {
+      throw new Error(`No valid returns calculated for ${coin}`);
     }
 
     const window = Math.min(30, logReturns.length);
@@ -97,12 +118,15 @@ const fetchPriceData = async (coin: string, days: number) => {
     volatilityData.value[coinKey] = volatilities;
     loading.value[coinKey] = false;
 
+    // 延迟初始化图表，确保DOM已经准备好
     setTimeout(() => {
       initChart(coinKey);
-    }, 100);
+    }, 200);
   } catch (err) {
     console.error(`Failed to fetch ${coin} price data:`, err);
-    error.value[coinKey] = "获取数据失败，请稍后再试";
+    error.value[coinKey] = `获取数据失败：${
+      err instanceof Error ? err.message : "未知错误"
+    }`;
     loading.value[coinKey] = false;
   }
 };
@@ -114,128 +138,34 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
   console.log(`Initializing ${coinKey} chart`);
   if (!chartRef.value) {
     console.error(`${coinKey} chart container not found`);
-    setTimeout(() => {
-      if (chartRef.value) {
-        doInitChart(coinKey);
-      } else {
-        console.error(`${coinKey} chart container still not found after retry`);
-      }
-    }, 100);
     return;
   }
 
-  doInitChart(coinKey);
-};
-
-// 实际执行图表初始化的函数
-const doInitChart = (coinKey: "solana" | "bitcoin") => {
-  const chartRef = coinKey === "solana" ? solanaChartRef : bitcoinChartRef;
-
   if (charts.value[coinKey]) {
-    charts.value[coinKey]!.dispose();
+    try {
+      charts.value[coinKey]!.dispose();
+    } catch (e) {
+      console.error(`Error disposing chart:`, e);
+    }
+    charts.value[coinKey] = null;
   }
 
   try {
-    if (!chartRef.value) {
-      console.error(`${coinKey} chart container is not available`);
-      return;
-    }
-
-    console.log(
-      `Initializing ${coinKey} chart with DOM element:`,
-      chartRef.value
-    );
-
-    charts.value[coinKey] = echarts.init(chartRef.value, null, {
-      renderer: "canvas",
-    });
+    charts.value[coinKey] = echarts.init(chartRef.value);
 
     const data = volatilityData.value[coinKey];
     if (!data || data.length === 0) {
-      console.error(`No volatility data available for ${coinKey}`);
+      console.error(`No data available for ${coinKey}`);
       return;
     }
 
-    console.log(`${coinKey} data points:`, data.length);
-
+    // 准备最基本的图表数据
     const dates = data.map((item) => item.date);
     const values = data.map((item) => item.value);
     const prices = data.map((item) => item.price);
 
+    // 基本图表配置，不使用echarts内置tooltip
     const option = {
-      animation: false,
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "cross",
-          label: {
-            backgroundColor: "#6a7985",
-          },
-          crossStyle: {
-            color: "#999",
-            width: 1,
-            type: "dashed",
-          },
-          lineStyle: {
-            color: "#999",
-            width: 1,
-            type: "dashed",
-          },
-        },
-        show: true,
-        alwaysShowContent: false, // 设置为true可以强制显示tooltip
-        backgroundColor: "rgba(255, 255, 255, 0.95)",
-        borderColor: "#ccc",
-        borderWidth: 1,
-        padding: [10, 15],
-        textStyle: {
-          color: "#333",
-        },
-        confine: true,
-        extraCssText: "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);z-index:100;",
-        formatter: function (params: any[]) {
-          if (!Array.isArray(params) || params.length === 0) return "";
-
-          const date = params[0].axisValue;
-          const volatility = params.find(
-            (p) => p.seriesName === "波动率"
-          )?.value;
-          const price = params.find((p) => p.seriesName === "价格")?.value;
-
-          const volatilityStatus =
-            typeof volatility === "number"
-              ? getVolatilityStatus(volatility)
-              : "";
-
-          const volatilityClass =
-            typeof volatility === "number"
-              ? volatility < 30
-                ? "color:#67c23a;"
-                : volatility < 50
-                ? "color:#e6a23c;"
-                : "color:#f56c6c;font-weight:" +
-                  (volatility >= 70 ? "bold" : "normal")
-              : "";
-
-          return `
-            <div style="font-size: 14px;min-width:180px;">
-              <div style="margin-bottom: 8px;font-weight:bold;border-bottom:1px solid #eee;padding-bottom:5px;">${date}</div>
-              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                <span>波动率:</span> 
-                <span style="${volatilityClass}">${
-            typeof volatility === "number" ? volatility.toFixed(2) : "0"
-          }% (${volatilityStatus})</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;">
-                <span>价格:</span>
-                <span style="font-weight:500;">$${
-                  typeof price === "number" ? price.toLocaleString() : "0"
-                }</span>
-              </div>
-            </div>
-          `;
-        },
-      },
       grid: {
         left: "10%",
         right: "10%",
@@ -245,17 +175,41 @@ const doInitChart = (coinKey: "solana" | "bitcoin") => {
       xAxis: {
         type: "category",
         data: dates,
+        axisPointer: {
+          show: true,
+        },
       },
       yAxis: [
         {
           type: "value",
           name: "波动率",
-          splitLine: { show: true },
+          axisLabel: {
+            formatter: "{value}%",
+          },
         },
         {
           type: "value",
           name: "价格",
-          splitLine: { show: false },
+          position: "right",
+          axisLabel: {
+            formatter: "${value}",
+          },
+        },
+      ],
+      toolbox: {
+        show: true,
+        feature: {
+          dataZoom: {
+            yAxisIndex: "none",
+          },
+          restore: {},
+        },
+      },
+      dataZoom: [
+        {
+          type: "inside",
+          start: 0,
+          end: 100,
         },
       ],
       series: [
@@ -263,13 +217,12 @@ const doInitChart = (coinKey: "solana" | "bitcoin") => {
           name: "波动率",
           type: "line",
           data: values,
-          symbolSize: 6,
-          symbol: "circle",
           smooth: true,
-          showSymbol: true,
+          symbol: "circle",
+          symbolSize: 6,
           emphasis: {
-            focus: "series",
             itemStyle: {
+              borderWidth: 2,
               shadowBlur: 10,
               shadowColor: "rgba(0, 0, 0, 0.3)",
             },
@@ -277,32 +230,18 @@ const doInitChart = (coinKey: "solana" | "bitcoin") => {
           itemStyle: {
             color: "#00C853",
           },
-          markLine: {
-            silent: true,
-            lineStyle: {
-              color: "#999",
-              type: "dashed",
-            },
-            data: [
-              {
-                yAxis: values[values.length - 1],
-                name: "当前波动率",
-              },
-            ],
-          },
         },
         {
           name: "价格",
           type: "line",
           yAxisIndex: 1,
           data: prices,
-          symbolSize: 6,
-          symbol: "circle",
           smooth: true,
-          showSymbol: true,
+          symbol: "circle",
+          symbolSize: 6,
           emphasis: {
-            focus: "series",
             itemStyle: {
+              borderWidth: 2,
               shadowBlur: 10,
               shadowColor: "rgba(0, 0, 0, 0.3)",
             },
@@ -310,65 +249,145 @@ const doInitChart = (coinKey: "solana" | "bitcoin") => {
           itemStyle: {
             color: coinKey === "solana" ? "#9945ff" : "#F7931A",
           },
-          markLine: {
-            silent: true,
-            lineStyle: {
-              color: "#999",
-              type: "dashed",
-            },
-            data: [
-              {
-                yAxis: prices[prices.length - 1],
-                name: "当前价格",
-              },
-            ],
-          },
         },
       ],
     };
 
+    // 设置图表选项
     charts.value[coinKey]!.setOption(option);
 
-    // 强制重新渲染并设置事件监听
-    charts.value[coinKey]!.resize();
+    // 添加自定义鼠标事件处理
+    chartRef.value.addEventListener("mousemove", (e: MouseEvent) => {
+      const rect = chartRef.value!.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-    charts.value[coinKey]!.off("showTip");
-    charts.value[coinKey]!.on("showTip", (params) => {
-      console.log(`${coinKey} tooltip shown:`, params);
-    });
+      try {
+        if (!charts.value[coinKey]) return;
 
-    charts.value[coinKey]!.off("hideTip");
-    charts.value[coinKey]!.on("hideTip", (params) => {
-      console.log(`${coinKey} tooltip hidden:`, params);
-    });
+        const pointInGrid = charts.value[coinKey]!.containPixel("grid", [x, y]);
+        if (pointInGrid) {
+          // 获取X轴日期索引
+          const xIndex = Math.round(
+            charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
+          );
 
-    // 在 doInitChart 函数末尾添加
-    setTimeout(() => {
-      if (charts.value[coinKey]) {
-        try {
-          console.log(`Forcing ${coinKey} chart re-render`);
-          charts.value[coinKey]!.resize();
+          // 确保索引有效
+          if (xIndex >= 0 && xIndex < data.length) {
+            const item = data[xIndex];
+
+            // 更新提示框信息
+            customTooltip.value[coinKey] = {
+              show: true,
+              x: x,
+              y: y,
+              date: item.date,
+              volatility: item.value,
+              price: item.price,
+            };
+
+            // 高亮对应的点
+            charts.value[coinKey]!.dispatchAction({
+              type: "highlight",
+              seriesIndex: [0, 1],
+              dataIndex: xIndex,
+            });
+          }
+        } else {
+          customTooltip.value[coinKey].show = false;
+
+          // 取消高亮
           charts.value[coinKey]!.dispatchAction({
-            type: "showTip",
-            seriesIndex: 0,
-            dataIndex: values.length - 1,
+            type: "downplay",
+            seriesIndex: [0, 1],
           });
-          setTimeout(() => {
-            if (charts.value[coinKey]) {
+        }
+      } catch (e) {
+        console.error(`Error in mousemove handler:`, e);
+        customTooltip.value[coinKey].show = false;
+      }
+    });
+
+    chartRef.value.addEventListener("mouseleave", () => {
+      customTooltip.value[coinKey].show = false;
+
+      // 取消高亮
+      if (charts.value[coinKey]) {
+        charts.value[coinKey]!.dispatchAction({
+          type: "downplay",
+          seriesIndex: [0, 1],
+        });
+      }
+    });
+
+    // 添加触摸事件支持
+    chartRef.value.addEventListener("touchmove", (e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = chartRef.value!.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // 复用与鼠标移动相同的处理逻辑
+        try {
+          if (!charts.value[coinKey]) return;
+
+          const pointInGrid = charts.value[coinKey]!.containPixel("grid", [
+            x,
+            y,
+          ]);
+          if (pointInGrid) {
+            // 获取X轴日期索引
+            const xIndex = Math.round(
+              charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
+            );
+
+            // 确保索引有效
+            if (xIndex >= 0 && xIndex < data.length) {
+              const item = data[xIndex];
+
+              // 更新提示框信息
+              customTooltip.value[coinKey] = {
+                show: true,
+                x: x,
+                y: y,
+                date: item.date,
+                volatility: item.value,
+                price: item.price,
+              };
+
               charts.value[coinKey]!.dispatchAction({
-                type: "hideTip",
+                type: "highlight",
+                seriesIndex: [0, 1],
+                dataIndex: xIndex,
               });
             }
-          }, 2000);
+          }
         } catch (e) {
-          console.error(`Error dispatching chart action: ${e}`);
+          console.error(`Error in touchmove handler:`, e);
         }
       }
-    }, 500);
+    });
+
+    chartRef.value.addEventListener("touchend", () => {
+      setTimeout(() => {
+        customTooltip.value[coinKey].show = false;
+        if (charts.value[coinKey]) {
+          charts.value[coinKey]!.dispatchAction({
+            type: "downplay",
+            seriesIndex: [0, 1],
+          });
+        }
+      }, 500); // 延迟半秒关闭提示框，让用户有时间查看
+    });
 
     console.log(`${coinKey} chart initialized successfully`);
-  } catch (err) {
-    console.error(`Error initializing ${coinKey} chart:`, err);
+  } catch (e) {
+    console.error(`Failed to initialize ${coinKey} chart:`, e);
+    error.value[coinKey] = `图表初始化失败：${
+      e instanceof Error ? e.message : "未知错误"
+    }`;
   }
 };
 
@@ -491,6 +510,33 @@ onMounted(async () => {
         </div>
         <div v-else class="chart-container">
           <div class="chart-div" ref="solanaChartRef"></div>
+          <!-- 自定义提示框 -->
+          <div
+            v-if="customTooltip.solana.show"
+            class="custom-tooltip"
+            :style="{
+              left: `${customTooltip.solana.x}px`,
+              top: `${customTooltip.solana.y - 80}px`,
+            }"
+          >
+            <div class="tooltip-date">{{ customTooltip.solana.date }}</div>
+            <div class="tooltip-item">
+              <span>波动率:</span>
+              <span
+                :class="getVolatilityClass(customTooltip.solana.volatility)"
+              >
+                {{ customTooltip.solana.volatility }}% ({{
+                  getVolatilityStatus(customTooltip.solana.volatility)
+                }})
+              </span>
+            </div>
+            <div class="tooltip-item">
+              <span>价格:</span>
+              <span class="tooltip-price"
+                >${{ customTooltip.solana.price }}</span
+              >
+            </div>
+          </div>
           <div v-if="solanaStats" class="statistics">
             <el-row :gutter="20">
               <el-col :span="24">
@@ -544,6 +590,33 @@ onMounted(async () => {
         </div>
         <div v-else class="chart-container">
           <div class="chart-div" ref="bitcoinChartRef"></div>
+          <!-- 自定义提示框 -->
+          <div
+            v-if="customTooltip.bitcoin.show"
+            class="custom-tooltip"
+            :style="{
+              left: `${customTooltip.bitcoin.x}px`,
+              top: `${customTooltip.bitcoin.y - 80}px`,
+            }"
+          >
+            <div class="tooltip-date">{{ customTooltip.bitcoin.date }}</div>
+            <div class="tooltip-item">
+              <span>波动率:</span>
+              <span
+                :class="getVolatilityClass(customTooltip.bitcoin.volatility)"
+              >
+                {{ customTooltip.bitcoin.volatility }}% ({{
+                  getVolatilityStatus(customTooltip.bitcoin.volatility)
+                }})
+              </span>
+            </div>
+            <div class="tooltip-item">
+              <span>价格:</span>
+              <span class="tooltip-price"
+                >${{ customTooltip.bitcoin.price }}</span
+              >
+            </div>
+          </div>
           <div v-if="bitcoinStats" class="statistics">
             <el-row :gutter="20">
               <el-col :span="24">
@@ -662,6 +735,35 @@ h2 {
 
 .bold {
   font-weight: bold;
+}
+
+.custom-tooltip {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  min-width: 180px;
+  pointer-events: none;
+}
+
+.tooltip-date {
+  font-weight: bold;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.tooltip-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.tooltip-price {
+  font-weight: 500;
 }
 
 @media (max-width: 1200px) {
