@@ -8,28 +8,34 @@ import type {
 } from "../types/echarts";
 
 // 状态变量
-const loading = ref(true);
-const error = ref<string | null>(null);
-const chart = ref<echarts.ECharts | null>(null);
-const chartContainer = ref<HTMLElement | null>(null);
+const loading = ref({
+  solana: true,
+  bitcoin: true,
+});
+const error = ref<{ solana: string | null; bitcoin: string | null }>({
+  solana: null,
+  bitcoin: null,
+});
+const charts = ref({
+  solana: null as echarts.ECharts | null,
+  bitcoin: null as echarts.ECharts | null,
+});
+const solanaChartRef = ref<HTMLElement | null>(null);
+const bitcoinChartRef = ref<HTMLElement | null>(null);
 const timeWindow = ref(30); // 默认30天
-const volatilityData = ref<{ date: string; value: number; price: number }[]>(
-  []
-);
-const selectedCoin = ref<"solana" | "bitcoin">("solana"); // 默认选择SOL
-
-// 获取加密货币的名称
-const coinDisplayName = computed(() => {
-  return selectedCoin.value === "solana" ? "SOL" : "BTC";
+const volatilityData = ref({
+  solana: [] as { date: string; value: number; price: number }[],
+  bitcoin: [] as { date: string; value: number; price: number }[],
 });
 
 // 获取历史价格数据
 const fetchPriceData = async (coin: string, days: number) => {
-  loading.value = true;
-  error.value = null;
+  const coinKey = coin as "solana" | "bitcoin";
+  loading.value[coinKey] = true;
+  error.value[coinKey] = null;
 
   try {
-    // 使用CoinGecko API获取历史价格
+    console.log(`Fetching ${coin} data for ${days} days...`);
     const response = await axios.get(
       `https://api.coingecko.com/api/v3/coins/${coin}/market_chart`,
       {
@@ -38,14 +44,25 @@ const fetchPriceData = async (coin: string, days: number) => {
           days: days,
           interval: "daily",
         },
+        timeout: 15000, // 增加超时时间
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    // 提取价格数据
+    if (
+      !response.data ||
+      !response.data.prices ||
+      response.data.prices.length === 0
+    ) {
+      throw new Error(`No price data returned for ${coin}`);
+    }
+
     const prices = response.data.prices;
     console.log(`Received ${coin} price data:`, prices.length, "data points");
 
-    // 计算对数收益率
     const logReturns = [];
     for (let i = 1; i < prices.length; i++) {
       const previousPrice = prices[i - 1][1];
@@ -53,25 +70,19 @@ const fetchPriceData = async (coin: string, days: number) => {
       logReturns.push(Math.log(currentPrice / previousPrice));
     }
 
-    // 计算N天滚动波动率，使用20天窗口
     const window = Math.min(30, logReturns.length);
     const volatilities = [];
 
     for (let i = window - 1; i < logReturns.length; i++) {
       const windowLogReturns = logReturns.slice(i - window + 1, i + 1);
-
-      // 计算标准差
       const mean =
         windowLogReturns.reduce((a, b) => a + b, 0) / windowLogReturns.length;
       const variance =
         windowLogReturns.reduce((a, b) => a + Math.pow(b - mean, 2), 0) /
-        (windowLogReturns.length - 1); // 使用 n-1 而不是 n (无偏估计)
+        (windowLogReturns.length - 1);
       const stdDev = Math.sqrt(variance);
+      const annualizedVol = stdDev * Math.sqrt(365) * 100;
 
-      // 计算年化波动率 (标准差 * sqrt(365))
-      const annualizedVol = stdDev * Math.sqrt(365) * 100; // 转为百分比
-
-      // 使用对应日期
       const date = new Date(prices[i + 1][0]);
       const dateStr = date.toISOString().split("T")[0];
       const price = prices[i + 1][1];
@@ -83,103 +94,105 @@ const fetchPriceData = async (coin: string, days: number) => {
       });
     }
 
-    volatilityData.value = volatilities;
-    console.log(
-      "Calculated volatility data:",
-      volatilityData.value.length,
-      "points"
-    );
+    volatilityData.value[coinKey] = volatilities;
+    loading.value[coinKey] = false;
 
-    // 设置loading为false以显示图表容器
-    loading.value = false;
-
-    // 使用setTimeout确保DOM已经更新后再初始化图表
     setTimeout(() => {
-      console.log("Timeout after data fetch, attempting to initialize chart");
-      console.log("Chart container exists:", !!chartContainer.value);
-      initChart();
+      initChart(coinKey);
     }, 100);
   } catch (err) {
     console.error(`Failed to fetch ${coin} price data:`, err);
-    error.value = "获取数据失败，请稍后再试";
-    loading.value = false;
+    error.value[coinKey] = "获取数据失败，请稍后再试";
+    loading.value[coinKey] = false;
   }
 };
 
 // 初始化ECharts图表
-const initChart = () => {
-  console.log("Initializing chart, container exists:", !!chartContainer.value);
-  if (!chartContainer.value) {
-    console.error("Chart container not found");
-    // 延迟重试一次
+const initChart = (coinKey: "solana" | "bitcoin") => {
+  const chartRef = coinKey === "solana" ? solanaChartRef : bitcoinChartRef;
+
+  console.log(`Initializing ${coinKey} chart`);
+  if (!chartRef.value) {
+    console.error(`${coinKey} chart container not found`);
     setTimeout(() => {
-      console.log("Retrying chart initialization...");
-      if (chartContainer.value) {
-        doInitChart();
+      if (chartRef.value) {
+        doInitChart(coinKey);
       } else {
-        console.error("Chart container still not found after retry");
+        console.error(`${coinKey} chart container still not found after retry`);
       }
     }, 100);
     return;
   }
 
-  doInitChart();
+  doInitChart(coinKey);
 };
 
 // 实际执行图表初始化的函数
-const doInitChart = () => {
-  if (chart.value) {
-    chart.value.dispose();
+const doInitChart = (coinKey: "solana" | "bitcoin") => {
+  const chartRef = coinKey === "solana" ? solanaChartRef : bitcoinChartRef;
+
+  if (charts.value[coinKey]) {
+    charts.value[coinKey]!.dispose();
   }
 
   try {
-    // 确保引用的DOM元素存在
-    if (!chartContainer.value) {
-      console.error("Chart container is not available");
+    if (!chartRef.value) {
+      console.error(`${coinKey} chart container is not available`);
       return;
     }
 
-    // 初始化图表
-    chart.value = echarts.init(chartContainer.value, null, {
+    console.log(
+      `Initializing ${coinKey} chart with DOM element:`,
+      chartRef.value
+    );
+
+    charts.value[coinKey] = echarts.init(chartRef.value, null, {
       renderer: "canvas",
     });
-    console.log("Chart initialized successfully");
 
-    // 验证数据是否有效
-    if (!volatilityData.value || volatilityData.value.length === 0) {
-      console.error("No volatility data available");
+    const data = volatilityData.value[coinKey];
+    if (!data || data.length === 0) {
+      console.error(`No volatility data available for ${coinKey}`);
       return;
     }
 
-    const dates = volatilityData.value.map((item) => item.date);
-    const values = volatilityData.value.map((item) => item.value);
-    const prices = volatilityData.value.map((item) => item.price);
+    console.log(`${coinKey} data points:`, data.length);
 
-    console.log("Data prepared:", {
-      dates: dates.length,
-      values: values.length,
-      prices: prices.length,
-      sample: {
-        date: dates[0],
-        value: values[0],
-        price: prices[0],
-      },
-    });
+    const dates = data.map((item) => item.date);
+    const values = data.map((item) => item.value);
+    const prices = data.map((item) => item.price);
 
     const option = {
       animation: false,
       tooltip: {
         trigger: "axis",
         axisPointer: {
-          type: "line",
+          type: "cross",
+          label: {
+            backgroundColor: "#6a7985",
+          },
+          crossStyle: {
+            color: "#999",
+            width: 1,
+            type: "dashed",
+          },
+          lineStyle: {
+            color: "#999",
+            width: 1,
+            type: "dashed",
+          },
         },
+        show: true,
+        alwaysShowContent: false, // 设置为true可以强制显示tooltip
         backgroundColor: "rgba(255, 255, 255, 0.95)",
         borderColor: "#ccc",
         borderWidth: 1,
-        padding: [5, 10],
+        padding: [10, 15],
         textStyle: {
           color: "#333",
         },
+        confine: true,
+        extraCssText: "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);z-index:100;",
         formatter: function (params: any[]) {
           if (!Array.isArray(params) || params.length === 0) return "";
 
@@ -189,15 +202,36 @@ const doInitChart = () => {
           )?.value;
           const price = params.find((p) => p.seriesName === "价格")?.value;
 
+          const volatilityStatus =
+            typeof volatility === "number"
+              ? getVolatilityStatus(volatility)
+              : "";
+
+          const volatilityClass =
+            typeof volatility === "number"
+              ? volatility < 30
+                ? "color:#67c23a;"
+                : volatility < 50
+                ? "color:#e6a23c;"
+                : "color:#f56c6c;font-weight:" +
+                  (volatility >= 70 ? "bold" : "normal")
+              : "";
+
           return `
-            <div style="font-size: 14px;">
-              <div style="margin-bottom: 5px;">${date}</div>
-              <div>波动率: ${
-                typeof volatility === "number" ? volatility.toFixed(2) : "0"
-              }%</div>
-              <div>价格: $${
-                typeof price === "number" ? price.toLocaleString() : "0"
-              }</div>
+            <div style="font-size: 14px;min-width:180px;">
+              <div style="margin-bottom: 8px;font-weight:bold;border-bottom:1px solid #eee;padding-bottom:5px;">${date}</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span>波动率:</span> 
+                <span style="${volatilityClass}">${
+            typeof volatility === "number" ? volatility.toFixed(2) : "0"
+          }% (${volatilityStatus})</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span>价格:</span>
+                <span style="font-weight:500;">$${
+                  typeof price === "number" ? price.toLocaleString() : "0"
+                }</span>
+              </div>
             </div>
           `;
         },
@@ -229,8 +263,32 @@ const doInitChart = () => {
           name: "波动率",
           type: "line",
           data: values,
+          symbolSize: 6,
+          symbol: "circle",
+          smooth: true,
+          showSymbol: true,
+          emphasis: {
+            focus: "series",
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.3)",
+            },
+          },
           itemStyle: {
             color: "#00C853",
+          },
+          markLine: {
+            silent: true,
+            lineStyle: {
+              color: "#999",
+              type: "dashed",
+            },
+            data: [
+              {
+                yAxis: values[values.length - 1],
+                name: "当前波动率",
+              },
+            ],
           },
         },
         {
@@ -238,112 +296,115 @@ const doInitChart = () => {
           type: "line",
           yAxisIndex: 1,
           data: prices,
+          symbolSize: 6,
+          symbol: "circle",
+          smooth: true,
+          showSymbol: true,
+          emphasis: {
+            focus: "series",
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.3)",
+            },
+          },
           itemStyle: {
-            color: selectedCoin.value === "solana" ? "#9945ff" : "#F7931A",
+            color: coinKey === "solana" ? "#9945ff" : "#F7931A",
+          },
+          markLine: {
+            silent: true,
+            lineStyle: {
+              color: "#999",
+              type: "dashed",
+            },
+            data: [
+              {
+                yAxis: prices[prices.length - 1],
+                name: "当前价格",
+              },
+            ],
           },
         },
       ],
     };
 
-    // 打印完整的配置和数据用于调试
-    console.log("Complete chart option:", JSON.stringify(option, null, 2));
-    console.log("First few data points:", {
-      dates: dates.slice(0, 5),
-      values: values.slice(0, 5),
-      prices: prices.slice(0, 5),
+    charts.value[coinKey]!.setOption(option);
+
+    // 强制重新渲染并设置事件监听
+    charts.value[coinKey]!.resize();
+
+    charts.value[coinKey]!.off("showTip");
+    charts.value[coinKey]!.on("showTip", (params) => {
+      console.log(`${coinKey} tooltip shown:`, params);
     });
 
-    chart.value.setOption(option);
-    console.log("Chart option set successfully");
-
-    // Add debugging information
-    console.log("Chart instance:", chart.value);
-    console.log("Chart container dimensions:", {
-      width: chartContainer.value?.clientWidth,
-      height: chartContainer.value?.clientHeight,
-    });
-    console.log("Chart data summary:", {
-      dates: dates.length,
-      values: values.length,
-      prices: prices.length,
+    charts.value[coinKey]!.off("hideTip");
+    charts.value[coinKey]!.on("hideTip", (params) => {
+      console.log(`${coinKey} tooltip hidden:`, params);
     });
 
-    // Add event listeners for debugging
-    chart.value.on("rendered", () => {
-      console.log("Chart rendered");
-    });
+    // 在 doInitChart 函数末尾添加
+    setTimeout(() => {
+      if (charts.value[coinKey]) {
+        try {
+          console.log(`Forcing ${coinKey} chart re-render`);
+          charts.value[coinKey]!.resize();
+          charts.value[coinKey]!.dispatchAction({
+            type: "showTip",
+            seriesIndex: 0,
+            dataIndex: values.length - 1,
+          });
+          setTimeout(() => {
+            if (charts.value[coinKey]) {
+              charts.value[coinKey]!.dispatchAction({
+                type: "hideTip",
+              });
+            }
+          }, 2000);
+        } catch (e) {
+          console.error(`Error dispatching chart action: ${e}`);
+        }
+      }
+    }, 500);
 
-    chart.value.on("mousemove", (params) => {
-      console.log("Mouse move event:", params);
-    });
-
-    chart.value.on("showTip", (params) => {
-      console.log("Show tip event:", params);
-    });
+    console.log(`${coinKey} chart initialized successfully`);
   } catch (err) {
-    console.error("Error initializing chart:", err);
+    console.error(`Error initializing ${coinKey} chart:`, err);
   }
 };
 
 // 监听窗口大小变化
 window.addEventListener("resize", () => {
-  if (chart.value) {
-    chart.value.resize();
+  if (charts.value.solana) {
+    charts.value.solana.resize();
+  }
+  if (charts.value.bitcoin) {
+    charts.value.bitcoin.resize();
   }
 });
 
 // 更改时间窗口
 const changeTimeWindow = (days: number) => {
   timeWindow.value = days;
-  fetchPriceData(selectedCoin.value, timeWindow.value);
-};
-
-// 为图表添加鼠标移动监听
-const setupChartListeners = () => {
-  if (!chart.value) return;
-
-  chart.value.on("mouseover", function (params) {
-    if (params.componentType === "series") {
-      chart.value?.dispatchAction({
-        type: "highlight",
-        seriesIndex: params.seriesIndex,
-        dataIndex: params.dataIndex,
-      });
-    }
-  });
-
-  chart.value.on("mouseout", function (params) {
-    if (params.componentType === "series") {
-      chart.value?.dispatchAction({
-        type: "downplay",
-        seriesIndex: params.seriesIndex,
-        dataIndex: params.dataIndex,
-      });
-    }
-  });
-};
-
-// 更改选择的加密货币
-const changeCoin = (coin: "solana" | "bitcoin") => {
-  selectedCoin.value = coin;
-  fetchPriceData(selectedCoin.value, timeWindow.value);
+  fetchPriceData("solana", timeWindow.value);
+  fetchPriceData("bitcoin", timeWindow.value);
 };
 
 // 统计信息
-const statistics = computed(() => {
-  if (!volatilityData.value.length) return null;
+const getStatistics = (coinKey: "solana" | "bitcoin") => {
+  const data = volatilityData.value[coinKey];
+  if (!data.length) return null;
 
-  const values = volatilityData.value.map((item) => item.value);
+  const values = data.map((item) => item.value);
   const max = Math.max(...values);
-  const maxDate = volatilityData.value[values.indexOf(max)].date;
+  const maxDate = data[values.indexOf(max)].date;
   const min = Math.min(...values);
-  const minDate = volatilityData.value[values.indexOf(min)].date;
+  const minDate = data[values.indexOf(min)].date;
   const avg = parseFloat(
     (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)
   );
-  const current = values[values.length - 1]; // 最新的波动率
-  const startDate = volatilityData.value[0].date;
-  const endDate = volatilityData.value[volatilityData.value.length - 1].date;
+  const current = values[values.length - 1];
+  const startDate = data[0].date;
+  const endDate = data[data.length - 1].date;
 
   return {
     max,
@@ -355,19 +416,18 @@ const statistics = computed(() => {
     startDate,
     endDate,
   };
-});
+};
+
+const solanaStats = computed(() => getStatistics("solana"));
+const bitcoinStats = computed(() => getStatistics("bitcoin"));
 
 // 获取波动率状态描述
-const getVolatilityStatus = () => {
-  if (!statistics.value) return "";
-
-  const current = statistics.value.current;
-
-  if (current < 30) {
+const getVolatilityStatus = (value: number) => {
+  if (value < 30) {
     return "低波动率";
-  } else if (current < 50) {
+  } else if (value < 50) {
     return "中等波动率";
-  } else if (current < 70) {
+  } else if (value < 70) {
     return "高波动率";
   } else {
     return "极高波动率";
@@ -389,114 +449,141 @@ const getVolatilityClass = (value: number) => {
 
 // 生命周期钩子
 onMounted(async () => {
-  console.log("Component mounted");
-  // 等待下一个tick，确保DOM已渲染
+  console.log(
+    "Component mounted - chart refs available:",
+    !!solanaChartRef.value,
+    !!bitcoinChartRef.value
+  );
+
   await nextTick();
   console.log(
-    "Next tick after mount, chartContainer exists:",
-    !!chartContainer.value
+    "After nextTick - chart refs available:",
+    !!solanaChartRef.value,
+    !!bitcoinChartRef.value
   );
-  fetchPriceData(selectedCoin.value, timeWindow.value);
+
+  fetchPriceData("solana", timeWindow.value);
+  fetchPriceData("bitcoin", timeWindow.value);
 });
 </script>
 
 <template>
   <div class="sol-volatility">
-    <h2>{{ coinDisplayName }} 历史波动率分析</h2>
+    <div class="time-selector">
+      <el-radio-group v-model="timeWindow" @change="changeTimeWindow">
+        <el-radio-button :label="30">30天</el-radio-button>
+        <el-radio-button :label="60">60天</el-radio-button>
+        <el-radio-button :label="90">90天</el-radio-button>
+        <el-radio-button :label="180">180天</el-radio-button>
+        <el-radio-button :label="365">1年</el-radio-button>
+      </el-radio-group>
+    </div>
 
-    <div class="selector-container">
-      <div class="coin-selector">
-        <el-radio-group v-model="selectedCoin" @change="changeCoin">
-          <el-radio-button label="solana">
-            <span class="coin-label">
-              <span class="coin-icon solana"></span>SOL
-            </span>
-          </el-radio-button>
-          <el-radio-button label="bitcoin">
-            <span class="coin-label">
-              <span class="coin-icon bitcoin"></span>BTC
-            </span>
-          </el-radio-button>
-        </el-radio-group>
+    <div class="charts-grid">
+      <!-- SOL Chart -->
+      <div class="chart-section">
+        <h2>SOL 历史波动率分析</h2>
+        <div v-if="loading.solana" class="loading-container">
+          <el-skeleton :rows="8" animated />
+        </div>
+        <div v-else-if="error.solana" class="error-message">
+          <el-alert :title="error.solana" type="error" />
+        </div>
+        <div v-else class="chart-container">
+          <div class="chart-div" ref="solanaChartRef"></div>
+          <div v-if="solanaStats" class="statistics">
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>SOL 历史波动率指标</span>
+                    </div>
+                  </template>
+                  <el-descriptions border :column="2">
+                    <el-descriptions-item label="当前波动率">
+                      <span :class="getVolatilityClass(solanaStats.current)">
+                        {{ solanaStats.current }}% ({{
+                          getVolatilityStatus(solanaStats.current)
+                        }})
+                      </span>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="平均波动率">
+                      {{ solanaStats.avg }}%
+                    </el-descriptions-item>
+                    <el-descriptions-item label="最大波动率">
+                      <span class="text-danger"
+                        >{{ solanaStats.max }}% ({{
+                          solanaStats.maxDate
+                        }})</span
+                      >
+                    </el-descriptions-item>
+                    <el-descriptions-item label="最小波动率">
+                      <span class="text-success"
+                        >{{ solanaStats.min }}% ({{
+                          solanaStats.minDate
+                        }})</span
+                      >
+                    </el-descriptions-item>
+                  </el-descriptions>
+                </el-card>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </div>
 
-      <div class="time-selector">
-        <el-radio-group v-model="timeWindow" @change="changeTimeWindow">
-          <el-radio-button :label="30">30天</el-radio-button>
-          <el-radio-button :label="60">60天</el-radio-button>
-          <el-radio-button :label="90">90天</el-radio-button>
-          <el-radio-button :label="180">180天</el-radio-button>
-          <el-radio-button :label="365">1年</el-radio-button>
-        </el-radio-group>
-      </div>
-    </div>
-
-    <div v-if="loading" class="loading-container">
-      <el-skeleton :rows="8" animated />
-    </div>
-
-    <div v-else-if="error" class="error-message">
-      <el-alert :title="error" type="error" />
-    </div>
-
-    <div v-else class="chart-container">
-      <div ref="chartContainer" class="chart-div"></div>
-
-      <div v-if="statistics" class="statistics">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-card shadow="hover">
-              <template #header>
-                <div class="card-header">
-                  <span>{{ coinDisplayName }} 历史波动率指标</span>
-                </div>
-              </template>
-              <el-descriptions border :column="1">
-                <el-descriptions-item label="当前波动率">
-                  <span :class="getVolatilityClass(statistics.current)"
-                    >{{ statistics.current }}%</span
-                  >
-                </el-descriptions-item>
-                <el-descriptions-item label="最大波动率">
-                  <span class="text-danger"
-                    >{{ statistics.max }}% ({{ statistics.maxDate }})</span
-                  >
-                </el-descriptions-item>
-                <el-descriptions-item label="最小波动率">
-                  <span class="text-success"
-                    >{{ statistics.min }}% ({{ statistics.minDate }})</span
-                  >
-                </el-descriptions-item>
-                <el-descriptions-item label="平均波动率">
-                  {{ statistics.avg }}%
-                </el-descriptions-item>
-              </el-descriptions>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card shadow="hover">
-              <template #header>
-                <div class="card-header">
-                  <span>波动率分析</span>
-                </div>
-              </template>
-              <div class="analysis">
-                <p>
-                  <strong>波动率状态:</strong>
-                  <span :class="getVolatilityClass(statistics.current)">{{
-                    getVolatilityStatus()
-                  }}</span>
-                </p>
-                <p><strong>数据周期:</strong> {{ timeWindow }}天</p>
-                <p><strong>数据点数:</strong> {{ volatilityData.length }}个</p>
-                <p>
-                  <strong>数据范围:</strong> {{ statistics.startDate }} 至
-                  {{ statistics.endDate }}
-                </p>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+      <!-- BTC Chart -->
+      <div class="chart-section">
+        <h2>BTC 历史波动率分析</h2>
+        <div v-if="loading.bitcoin" class="loading-container">
+          <el-skeleton :rows="8" animated />
+        </div>
+        <div v-else-if="error.bitcoin" class="error-message">
+          <el-alert :title="error.bitcoin" type="error" />
+        </div>
+        <div v-else class="chart-container">
+          <div class="chart-div" ref="bitcoinChartRef"></div>
+          <div v-if="bitcoinStats" class="statistics">
+            <el-row :gutter="20">
+              <el-col :span="24">
+                <el-card shadow="hover">
+                  <template #header>
+                    <div class="card-header">
+                      <span>BTC 历史波动率指标</span>
+                    </div>
+                  </template>
+                  <el-descriptions border :column="2">
+                    <el-descriptions-item label="当前波动率">
+                      <span :class="getVolatilityClass(bitcoinStats.current)">
+                        {{ bitcoinStats.current }}% ({{
+                          getVolatilityStatus(bitcoinStats.current)
+                        }})
+                      </span>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="平均波动率">
+                      {{ bitcoinStats.avg }}%
+                    </el-descriptions-item>
+                    <el-descriptions-item label="最大波动率">
+                      <span class="text-danger"
+                        >{{ bitcoinStats.max }}% ({{
+                          bitcoinStats.maxDate
+                        }})</span
+                      >
+                    </el-descriptions-item>
+                    <el-descriptions-item label="最小波动率">
+                      <span class="text-success"
+                        >{{ bitcoinStats.min }}% ({{
+                          bitcoinStats.minDate
+                        }})</span
+                      >
+                    </el-descriptions-item>
+                  </el-descriptions>
+                </el-card>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -507,48 +594,29 @@ onMounted(async () => {
   padding: 20px;
 }
 
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.chart-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
 h2 {
   text-align: center;
   margin-bottom: 20px;
 }
 
-.selector-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.coin-selector {
-  margin-bottom: 10px;
-}
-
-.coin-label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.coin-icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-size: cover;
-}
-
-.solana {
-  background-color: #9945ff;
-}
-
-.bitcoin {
-  background-color: #f7931a;
-}
-
 .time-selector {
   display: flex;
   justify-content: center;
+  margin-bottom: 20px;
 }
 
 .loading-container {
@@ -565,12 +633,11 @@ h2 {
   background-color: white;
   border-radius: 4px;
   padding: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .chart-div {
   width: 100%;
-  height: 500px;
+  height: 400px;
 }
 
 .statistics {
@@ -597,7 +664,9 @@ h2 {
   font-weight: bold;
 }
 
-.analysis {
-  line-height: 1.8;
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
