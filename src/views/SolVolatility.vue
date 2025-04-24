@@ -2,10 +2,6 @@
 import { ref, onMounted, computed, nextTick } from "vue";
 import axios from "axios";
 import * as echarts from "echarts";
-import type {
-  EChartsTooltipFormatterParams,
-  VolatilityDataPoint,
-} from "../types/echarts";
 
 // 状态变量
 const loading = ref({
@@ -257,14 +253,14 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
     charts.value[coinKey]!.setOption(option);
 
     // 添加自定义鼠标事件处理
-    chartRef.value.addEventListener("mousemove", (e: MouseEvent) => {
-      const rect = chartRef.value!.getBoundingClientRect();
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!chartRef.value || !charts.value[coinKey]) return;
+
+      const rect = chartRef.value.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
       try {
-        if (!charts.value[coinKey]) return;
-
         const pointInGrid = charts.value[coinKey]!.containPixel("grid", [x, y]);
         if (pointInGrid) {
           // 获取X轴日期索引
@@ -276,11 +272,28 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
           if (xIndex >= 0 && xIndex < data.length) {
             const item = data[xIndex];
 
+            // 计算提示框位置，确保不会超出容器
+            let tooltipX = x;
+            let tooltipY = y - 80; // 向上偏移
+
+            // 获取容器宽度
+            const containerWidth = chartRef.value.clientWidth;
+
+            // 如果靠近右边，将提示框向左偏移
+            if (x > containerWidth - 200) {
+              tooltipX = containerWidth - 200;
+            }
+
+            // 如果靠近顶部，将提示框向下偏移
+            if (tooltipY < 10) {
+              tooltipY = 10;
+            }
+
             // 更新提示框信息
             customTooltip.value[coinKey] = {
               show: true,
-              x: x,
-              y: y,
+              x: tooltipX,
+              y: tooltipY,
               date: item.date,
               volatility: item.value,
               price: item.price,
@@ -306,9 +319,9 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
         console.error(`Error in mousemove handler:`, e);
         customTooltip.value[coinKey].show = false;
       }
-    });
+    };
 
-    chartRef.value.addEventListener("mouseleave", () => {
+    const handleMouseLeave = () => {
       customTooltip.value[coinKey].show = false;
 
       // 取消高亮
@@ -318,69 +331,74 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
           seriesIndex: [0, 1],
         });
       }
-    });
+    };
 
-    // 添加触摸事件支持
-    chartRef.value.addEventListener("touchmove", (e: TouchEvent) => {
-      e.preventDefault();
-      if (e.touches.length > 0) {
-        const touch = e.touches[0];
-        const rect = chartRef.value!.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+    // 安全添加事件监听
+    if (chartRef.value) {
+      chartRef.value.addEventListener("mousemove", handleMouseMove);
+      chartRef.value.addEventListener("mouseleave", handleMouseLeave);
 
-        // 复用与鼠标移动相同的处理逻辑
-        try {
-          if (!charts.value[coinKey]) return;
+      // 修改移动设备上的触摸事件
+      chartRef.value.addEventListener("touchmove", (e: TouchEvent) => {
+        e.preventDefault();
+        if (e.touches.length > 0 && chartRef.value) {
+          const touch = e.touches[0];
+          const rect = chartRef.value.getBoundingClientRect();
+          const x = touch.clientX - rect.left;
+          const y = touch.clientY - rect.top;
 
-          const pointInGrid = charts.value[coinKey]!.containPixel("grid", [
-            x,
-            y,
-          ]);
-          if (pointInGrid) {
-            // 获取X轴日期索引
-            const xIndex = Math.round(
-              charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
-            );
+          // 复制处理鼠标移动的逻辑
+          try {
+            const pointInGrid = charts.value[coinKey]!.containPixel("grid", [
+              x,
+              y,
+            ]);
+            if (pointInGrid) {
+              // 获取X轴日期索引
+              const xIndex = Math.round(
+                charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
+              );
 
-            // 确保索引有效
-            if (xIndex >= 0 && xIndex < data.length) {
-              const item = data[xIndex];
+              // 确保索引有效
+              if (xIndex >= 0 && xIndex < data.length) {
+                const item = data[xIndex];
 
-              // 更新提示框信息
-              customTooltip.value[coinKey] = {
-                show: true,
-                x: x,
-                y: y,
-                date: item.date,
-                volatility: item.value,
-                price: item.price,
-              };
+                // 触摸设备上的位置计算略有不同
+                let tooltipX = Math.min(x, chartRef.value.clientWidth - 230); // 确保不超出右边界
+                tooltipX = Math.max(10, tooltipX); // 确保不超出左边界
 
-              charts.value[coinKey]!.dispatchAction({
-                type: "highlight",
-                seriesIndex: [0, 1],
-                dataIndex: xIndex,
-              });
+                let tooltipY = y; // 手指点到哪里，提示框就显示在哪里
+
+                // 更新提示框信息
+                customTooltip.value[coinKey] = {
+                  show: true,
+                  x: tooltipX,
+                  y: tooltipY,
+                  date: item.date,
+                  volatility: item.value,
+                  price: item.price,
+                };
+
+                // 高亮对应的点
+                charts.value[coinKey]!.dispatchAction({
+                  type: "highlight",
+                  seriesIndex: [0, 1],
+                  dataIndex: xIndex,
+                });
+              }
             }
+          } catch (e) {
+            console.error(`Error in touchmove handler:`, e);
           }
-        } catch (e) {
-          console.error(`Error in touchmove handler:`, e);
         }
-      }
-    });
+      });
 
-    chartRef.value.addEventListener("touchend", () => {
-      setTimeout(() => {
-        customTooltip.value[coinKey].show = false;
-        if (charts.value[coinKey]) {
-          charts.value[coinKey]!.dispatchAction({
-            type: "downplay",
-            seriesIndex: [0, 1],
-          });
-        }
-      }, 500); // 延迟半秒关闭提示框，让用户有时间查看
-    });
+      chartRef.value.addEventListener("touchend", () => {
+        setTimeout(() => {
+          handleMouseLeave();
+        }, 500); // 延迟关闭提示框
+      });
+    }
 
     console.log(`${coinKey} chart initialized successfully`);
   } catch (e) {
@@ -508,7 +526,7 @@ onMounted(async () => {
         <div v-else-if="error.solana" class="error-message">
           <el-alert :title="error.solana" type="error" />
         </div>
-        <div v-else class="chart-container">
+        <div v-else class="chart-container" style="position: relative">
           <div class="chart-div" ref="solanaChartRef"></div>
           <!-- 自定义提示框 -->
           <div
@@ -516,7 +534,7 @@ onMounted(async () => {
             class="custom-tooltip"
             :style="{
               left: `${customTooltip.solana.x}px`,
-              top: `${customTooltip.solana.y - 80}px`,
+              top: `${customTooltip.solana.y}px`,
             }"
           >
             <div class="tooltip-date">{{ customTooltip.solana.date }}</div>
@@ -588,7 +606,7 @@ onMounted(async () => {
         <div v-else-if="error.bitcoin" class="error-message">
           <el-alert :title="error.bitcoin" type="error" />
         </div>
-        <div v-else class="chart-container">
+        <div v-else class="chart-container" style="position: relative">
           <div class="chart-div" ref="bitcoinChartRef"></div>
           <!-- 自定义提示框 -->
           <div
@@ -596,7 +614,7 @@ onMounted(async () => {
             class="custom-tooltip"
             :style="{
               left: `${customTooltip.bitcoin.x}px`,
-              top: `${customTooltip.bitcoin.y - 80}px`,
+              top: `${customTooltip.bitcoin.y}px`,
             }"
           >
             <div class="tooltip-date">{{ customTooltip.bitcoin.date }}</div>
@@ -739,14 +757,16 @@ h2 {
 
 .custom-tooltip {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.98);
   border: 1px solid #ddd;
-  padding: 10px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 100;
   min-width: 180px;
   pointer-events: none;
+  transform: translate(10px, -50%);
+  max-width: 220px;
 }
 
 .tooltip-date {
@@ -754,16 +774,20 @@ h2 {
   margin-bottom: 8px;
   border-bottom: 1px solid #eee;
   padding-bottom: 5px;
+  color: #333;
+  font-size: 14px;
 }
 
 .tooltip-item {
   display: flex;
   justify-content: space-between;
   margin-bottom: 5px;
+  font-size: 14px;
 }
 
 .tooltip-price {
   font-weight: 500;
+  color: #2c3e50;
 }
 
 @media (max-width: 1200px) {
