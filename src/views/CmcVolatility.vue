@@ -642,10 +642,7 @@ onMounted(async () => {
 <template>
   <div class="cmc-volatility">
     <div class="page-header">
-      <h1>coindesk 历史波动率分析 (模拟数据)</h1>
-      <div class="api-info">
-        注：由于API访问限制，本页面使用模拟数据进行展示
-      </div>
+      <h1>coindesk 历史波动率分析</h1>
     </div>
 
     <div class="time-selector">
@@ -699,44 +696,37 @@ onMounted(async () => {
               >
             </div>
           </div>
-          <div v-if="solanaStats" class="statistics">
-            <el-row :gutter="20">
-              <el-col :span="24">
-                <el-card shadow="hover">
-                  <template #header>
-                    <div class="card-header">
-                      <span>SOL 历史波动率指标</span>
-                    </div>
-                  </template>
-                  <el-descriptions border :column="2">
-                    <el-descriptions-item label="当前波动率">
-                      <span :class="getVolatilityClass(solanaStats.current)">
-                        {{ solanaStats.current }}% ({{
-                          getVolatilityStatus(solanaStats.current)
-                        }})
-                      </span>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="平均波动率">
-                      {{ solanaStats.avg }}%
-                    </el-descriptions-item>
-                    <el-descriptions-item label="最大波动率">
-                      <span class="text-danger"
-                        >{{ solanaStats.max }}% ({{
-                          solanaStats.maxDate
-                        }})</span
-                      >
-                    </el-descriptions-item>
-                    <el-descriptions-item label="最小波动率">
-                      <span class="text-success"
-                        >{{ solanaStats.min }}% ({{
-                          solanaStats.minDate
-                        }})</span
-                      >
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </el-card>
-              </el-col>
-            </el-row>
+          <div v-if="solanaStats" class="volatility-metrics-card">
+            <div class="metrics-header">SOL 历史波动率指标</div>
+            <div class="metrics-grid">
+              <div class="metric-item">
+                <div class="metric-label">当前波动率</div>
+                <div
+                  class="metric-value"
+                  :class="getVolatilityClass(solanaStats.current)"
+                >
+                  {{ solanaStats.current }}% ({{
+                    getVolatilityStatus(solanaStats.current)
+                  }})
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">平均波动率</div>
+                <div class="metric-value">{{ solanaStats.avg }}%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">最大波动率</div>
+                <div class="metric-value text-danger">
+                  {{ solanaStats.max }}% ({{ formatDate(solanaStats.maxDate) }})
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">最小波动率</div>
+                <div class="metric-value text-success">
+                  {{ solanaStats.min }}% ({{ formatDate(solanaStats.minDate) }})
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -782,44 +772,41 @@ onMounted(async () => {
               >
             </div>
           </div>
-          <div v-if="bitcoinStats" class="statistics">
-            <el-row :gutter="20">
-              <el-col :span="24">
-                <el-card shadow="hover">
-                  <template #header>
-                    <div class="card-header">
-                      <span>BTC 历史波动率指标</span>
-                    </div>
-                  </template>
-                  <el-descriptions border :column="2">
-                    <el-descriptions-item label="当前波动率">
-                      <span :class="getVolatilityClass(bitcoinStats.current)">
-                        {{ bitcoinStats.current }}% ({{
-                          getVolatilityStatus(bitcoinStats.current)
-                        }})
-                      </span>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="平均波动率">
-                      {{ bitcoinStats.avg }}%
-                    </el-descriptions-item>
-                    <el-descriptions-item label="最大波动率">
-                      <span class="text-danger"
-                        >{{ bitcoinStats.max }}% ({{
-                          bitcoinStats.maxDate
-                        }})</span
-                      >
-                    </el-descriptions-item>
-                    <el-descriptions-item label="最小波动率">
-                      <span class="text-success"
-                        >{{ bitcoinStats.min }}% ({{
-                          bitcoinStats.minDate
-                        }})</span
-                      >
-                    </el-descriptions-item>
-                  </el-descriptions>
-                </el-card>
-              </el-col>
-            </el-row>
+          <div v-if="bitcoinStats" class="volatility-metrics-card">
+            <div class="metrics-header">BTC 历史波动率指标</div>
+            <div class="metrics-grid">
+              <div class="metric-item">
+                <div class="metric-label">当前波动率</div>
+                <div
+                  class="metric-value"
+                  :class="getVolatilityClass(bitcoinStats.current)"
+                >
+                  {{ bitcoinStats.current }}% ({{
+                    getVolatilityStatus(bitcoinStats.current)
+                  }})
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">平均波动率</div>
+                <div class="metric-value">{{ bitcoinStats.avg }}%</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">最大波动率</div>
+                <div class="metric-value text-danger">
+                  {{ bitcoinStats.max }}% ({{
+                    formatDate(bitcoinStats.maxDate)
+                  }})
+                </div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">最小波动率</div>
+                <div class="metric-value text-success">
+                  {{ bitcoinStats.min }}% ({{
+                    formatDate(bitcoinStats.minDate)
+                  }})
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -965,25 +952,115 @@ h2 {
   background-color: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
-  border-left: 4px solid #409eff;
 }
 
 .implementation-notes h3 {
-  margin-top: 0;
-  color: #409eff;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.implementation-notes ul {
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.metric-section {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+.metric-section h4 {
+  color: #409eff;
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.metric-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.metric-section li {
+  margin-bottom: 10px;
+  color: #606266;
+  font-size: 14px;
+  position: relative;
   padding-left: 20px;
 }
 
-.implementation-notes li {
-  margin-bottom: 6px;
+.metric-section li::before {
+  content: "•";
+  color: #409eff;
+  position: absolute;
+  left: 0;
+  font-weight: bold;
 }
 
-@media (max-width: 1200px) {
-  .charts-grid {
+@media (max-width: 768px) {
+  .metrics-grid {
     grid-template-columns: 1fr;
   }
+
+  .metric-section {
+    margin-bottom: 15px;
+  }
+}
+
+.volatility-metrics-card {
+  margin-top: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.metrics-header {
+  background-color: #f5f7fa;
+  padding: 12px 20px;
+  font-weight: bold;
+  color: #2c3e50;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background-color: #ebeef5;
+}
+
+.metric-item {
+  background-color: white;
+  padding: 15px 20px;
+}
+
+.metric-label {
+  color: #606266;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.text-success {
+  color: #67c23a !important;
+}
+
+.text-warning {
+  color: #e6a23c !important;
+}
+
+.text-danger {
+  color: #f56c6c !important;
 }
 </style>

@@ -546,6 +546,9 @@ onMounted(async () => {
 
 <template>
   <div class="sol-volatility">
+    <div class="page-header">
+      <h1>coingecko 历史波动率分析</h1>
+    </div>
     <div class="time-selector">
       <el-radio-group v-model="timeWindow" @change="changeTimeWindow">
         <el-radio-button :label="30">30天</el-radio-button>
