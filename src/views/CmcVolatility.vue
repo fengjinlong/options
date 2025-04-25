@@ -285,6 +285,18 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
           axisLabel: {
             formatter: "{value}%",
           },
+          axisPointer: {
+            show: true,
+            snap: true,
+            label: {
+              show: true,
+              formatter: "{value}%",
+            },
+            lineStyle: {
+              color: "#FF0000",
+              width: 1,
+            },
+          },
         },
         {
           type: "value",
@@ -303,6 +315,11 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
           },
           restore: {},
         },
+      },
+      axisPointer: {
+        link: [{ xAxisIndex: "all" }],
+        show: true,
+        type: "line",
       },
       dataZoom: [
         {
