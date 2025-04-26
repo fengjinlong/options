@@ -3,6 +3,21 @@ import { ref, onMounted, computed, nextTick } from "vue";
 import axios from "axios";
 import * as echarts from "echarts";
 
+// 添加节流函数
+const throttle = <T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): ((...args: Parameters<T>) => void) => {
+  let lastTime = 0;
+  return function (this: any, ...args: Parameters<T>): void {
+    const now = Date.now();
+    if (now - lastTime >= delay) {
+      fn.apply(this, args);
+      lastTime = now;
+    }
+  };
+};
+
 // 状态变量
 const loading = ref({
   solana: true,
@@ -26,6 +41,12 @@ const volatilityData = ref({
 const customTooltip = ref({
   solana: { show: false, x: 0, y: 0, date: "", volatility: 0, price: 0 },
   bitcoin: { show: false, x: 0, y: 0, date: "", volatility: 0, price: 0 },
+});
+
+// 添加当前高亮的点索引记录
+const currentHighlightIndex = ref({
+  solana: -1,
+  bitcoin: -1,
 });
 
 // coindesk API Key
@@ -373,7 +394,7 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
     charts.value[coinKey]!.setOption(option);
 
     // 添加自定义鼠标事件处理
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = throttle((e: MouseEvent) => {
       if (!chartRef.value || !charts.value[coinKey]) return;
 
       const rect = chartRef.value.getBoundingClientRect();
@@ -388,8 +409,12 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
             charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
           );
 
-          // 确保索引有效
-          if (xIndex >= 0 && xIndex < data.length) {
+          // 确保索引有效且与当前高亮点不同
+          if (
+            xIndex >= 0 &&
+            xIndex < data.length &&
+            xIndex !== currentHighlightIndex.value[coinKey]
+          ) {
             const item = data[xIndex];
 
             // 计算提示框位置，确保不会超出容器
@@ -419,104 +444,129 @@ const initChart = (coinKey: "solana" | "bitcoin") => {
               price: item.price,
             };
 
-            // 高亮对应的点
+            // 取消之前的高亮点
+            if (currentHighlightIndex.value[coinKey] !== -1) {
+              charts.value[coinKey]!.dispatchAction({
+                type: "downplay",
+                seriesIndex: [0, 1],
+                dataIndex: currentHighlightIndex.value[coinKey],
+              });
+            }
+
+            // 高亮当前点
             charts.value[coinKey]!.dispatchAction({
               type: "highlight",
               seriesIndex: [0, 1],
               dataIndex: xIndex,
             });
+
+            // 更新当前高亮点索引
+            currentHighlightIndex.value[coinKey] = xIndex;
           }
         } else {
           customTooltip.value[coinKey].show = false;
 
           // 取消高亮
-          charts.value[coinKey]!.dispatchAction({
-            type: "downplay",
-            seriesIndex: [0, 1],
-          });
+          if (currentHighlightIndex.value[coinKey] !== -1) {
+            charts.value[coinKey]!.dispatchAction({
+              type: "downplay",
+              seriesIndex: [0, 1],
+              dataIndex: currentHighlightIndex.value[coinKey],
+            });
+            currentHighlightIndex.value[coinKey] = -1;
+          }
         }
       } catch (e) {
         console.error(`Error in mousemove handler:`, e);
         customTooltip.value[coinKey].show = false;
       }
-    };
+    }, 100);
 
     const handleMouseLeave = () => {
       customTooltip.value[coinKey].show = false;
 
       // 取消高亮
-      if (charts.value[coinKey]) {
+      if (currentHighlightIndex.value[coinKey] !== -1) {
         charts.value[coinKey]!.dispatchAction({
           type: "downplay",
           seriesIndex: [0, 1],
+          dataIndex: currentHighlightIndex.value[coinKey],
         });
+        currentHighlightIndex.value[coinKey] = -1;
       }
     };
+
+    // 修改移动设备上的触摸事件处理
+    const handleTouchMove = throttle((e: TouchEvent) => {
+      e.preventDefault();
+      if (e.touches.length > 0 && chartRef.value) {
+        const touch = e.touches[0];
+        const rect = chartRef.value.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        try {
+          const pointInGrid = charts.value[coinKey]!.containPixel("grid", [
+            x,
+            y,
+          ]);
+          if (pointInGrid) {
+            const xIndex = Math.round(
+              charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
+            );
+
+            if (
+              xIndex >= 0 &&
+              xIndex < data.length &&
+              xIndex !== currentHighlightIndex.value[coinKey]
+            ) {
+              const item = data[xIndex];
+
+              let tooltipX = Math.min(x, chartRef.value.clientWidth - 230);
+              tooltipX = Math.max(10, tooltipX);
+              let tooltipY = y;
+
+              customTooltip.value[coinKey] = {
+                show: true,
+                x: tooltipX,
+                y: tooltipY,
+                date: item.date,
+                volatility: item.value,
+                price: item.price,
+              };
+
+              if (currentHighlightIndex.value[coinKey] !== -1) {
+                charts.value[coinKey]!.dispatchAction({
+                  type: "downplay",
+                  seriesIndex: [0, 1],
+                  dataIndex: currentHighlightIndex.value[coinKey],
+                });
+              }
+
+              charts.value[coinKey]!.dispatchAction({
+                type: "highlight",
+                seriesIndex: [0, 1],
+                dataIndex: xIndex,
+              });
+
+              currentHighlightIndex.value[coinKey] = xIndex;
+            }
+          }
+        } catch (e) {
+          console.error(`Error in touchmove handler:`, e);
+        }
+      }
+    }, 100);
 
     // 安全添加事件监听
     if (chartRef.value) {
       chartRef.value.addEventListener("mousemove", handleMouseMove);
       chartRef.value.addEventListener("mouseleave", handleMouseLeave);
-
-      // 修改移动设备上的触摸事件
-      chartRef.value.addEventListener("touchmove", (e: TouchEvent) => {
-        e.preventDefault();
-        if (e.touches.length > 0 && chartRef.value) {
-          const touch = e.touches[0];
-          const rect = chartRef.value.getBoundingClientRect();
-          const x = touch.clientX - rect.left;
-          const y = touch.clientY - rect.top;
-
-          // 复制处理鼠标移动的逻辑
-          try {
-            const pointInGrid = charts.value[coinKey]!.containPixel("grid", [
-              x,
-              y,
-            ]);
-            if (pointInGrid) {
-              // 获取X轴日期索引
-              const xIndex = Math.round(
-                charts.value[coinKey]!.convertFromPixel({ xAxisIndex: 0 }, x)
-              );
-
-              // 确保索引有效
-              if (xIndex >= 0 && xIndex < data.length) {
-                const item = data[xIndex];
-
-                // 触摸设备上的位置计算略有不同
-                let tooltipX = Math.min(x, chartRef.value.clientWidth - 230); // 确保不超出右边界
-                tooltipX = Math.max(10, tooltipX); // 确保不超出左边界
-
-                let tooltipY = y; // 手指点到哪里，提示框就显示在哪里
-
-                // 更新提示框信息
-                customTooltip.value[coinKey] = {
-                  show: true,
-                  x: tooltipX,
-                  y: tooltipY,
-                  date: item.date,
-                  volatility: item.value,
-                  price: item.price,
-                };
-
-                // 高亮对应的点
-                charts.value[coinKey]!.dispatchAction({
-                  type: "highlight",
-                  seriesIndex: [0, 1],
-                  dataIndex: xIndex,
-                });
-              }
-            }
-          } catch (e) {
-            console.error(`Error in touchmove handler:`, e);
-          }
-        }
-      });
-
+      chartRef.value.addEventListener("touchmove", handleTouchMove);
       chartRef.value.addEventListener("touchend", () => {
         setTimeout(() => {
           handleMouseLeave();
-        }, 500); // 延迟关闭提示框
+        }, 500);
       });
     }
 
