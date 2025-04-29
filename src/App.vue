@@ -18,6 +18,9 @@ const router = useRouter();
         <el-button type="primary" @click="router.push('/cmc-volatility')"
           >历史波动率(coindesk)</el-button
         >
+        <el-button type="primary" @click="router.push('/derbit-volatility')"
+          >历史波动率(derbit)</el-button
+        >
       </div>
     </header>
     <router-view></router-view>

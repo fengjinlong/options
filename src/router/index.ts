@@ -3,6 +3,7 @@ import StrategyList from "../components/StrategyList.vue";
 import OptionCalendarChart from "../components/OptionCalendarChart.vue";
 import SolVolatility from "../views/SolVolatility.vue";
 import CmcVolatility from "../views/CmcVolatility.vue";
+import VolatilityChart from "../components/VolatilityChart.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: "/cmc-volatility",
       name: "cmc-volatility",
       component: CmcVolatility,
+    },
+    {
+      path: "/derbit-volatility",
+      name: "historical-volatility",
+      component: VolatilityChart,
     },
   ],
 });
