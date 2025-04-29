@@ -2,19 +2,20 @@
   <div class="volatility-chart-container">
     <div class="chart-header">
       <div class="title-section">
-        <h2>Cryptocurrency Historical Volatility</h2>
-        <div class="time-selector">
+        <h2>Historical Volatility</h2>
+        <!-- <div class="time-selector">
           <el-radio-group v-model="timeWindow" @change="handleTimeWindowChange">
             <el-radio-button :label="30">30天</el-radio-button>
             <el-radio-button :label="60">60天</el-radio-button>
             <el-radio-button :label="90">90天</el-radio-button>
             <el-radio-button :label="180">180天</el-radio-button>
           </el-radio-group>
-        </div>
+        </div> -->
       </div>
       <el-select
         v-model="selectedCurrencies"
         multiple
+        style="width: 50%"
         placeholder="Select currencies"
         @change="loadData"
       >
@@ -180,8 +181,8 @@ const initChart = () => {
   chart.value = echarts.init(chartRef.value);
   const option: echarts.EChartsOption = {
     title: {
-      text: "Historical Volatility Comparison",
-      left: "center",
+      text: "",
+      left: "",
     },
     tooltip: {
       trigger: "axis",
