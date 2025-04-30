@@ -94,7 +94,6 @@ const calculateQuartiles = (sortedData: number[]) => {
   const n = sortedData.length;
   if (n === 0) return { q1: null, q3: null };
 
-  const median = calculateMedian(sortedData);
   const lowerHalf = sortedData.slice(0, Math.floor(n / 2));
   const upperHalf =
     n % 2 === 0
