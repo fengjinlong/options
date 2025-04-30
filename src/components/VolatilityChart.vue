@@ -53,18 +53,29 @@
         <div class="metrics-content" v-if="volatilityStats[currency]">
           <div class="metric-row">
             <div class="metric-item">
-              <div class="metric-label">当前波动率</div>
+              <div class="metric-label">当前隐含波动率指数DVOL</div>
               <div
                 class="metric-value"
-                :class="getVolatilityClass(volatilityStats[currency].current)"
+                :class="
+                  getVolatilityClass(
+                    currentDvols[currency] || volatilityStats[currency].current
+                  )
+                "
               >
-                {{ volatilityStats[currency].current }}% ({{
-                  getVolatilityStatus(volatilityStats[currency].current)
+                {{
+                  currentDvols[currency] !== null
+                    ? `${currentDvols[currency]}%`
+                    : "暂无数据"
+                }}
+                ({{
+                  getVolatilityStatus(
+                    currentDvols[currency] || volatilityStats[currency].current
+                  )
                 }})
               </div>
             </div>
             <div class="metric-item">
-              <div class="metric-label">平均波动率</div>
+              <div class="metric-label">平均历史波动率</div>
               <div class="metric-value">
                 {{ volatilityStats[currency].avg }}%
               </div>
@@ -72,7 +83,7 @@
           </div>
           <div class="metric-row">
             <div class="metric-item">
-              <div class="metric-label">最大波动率</div>
+              <div class="metric-label">最大历史波动率</div>
               <div class="metric-value text-danger">
                 {{ volatilityStats[currency].max }}%
                 <span class="date-info"
@@ -81,7 +92,7 @@
               </div>
             </div>
             <div class="metric-item">
-              <div class="metric-label">最小波动率</div>
+              <div class="metric-label">最小历史波动率</div>
               <div class="metric-value text-success">
                 {{ volatilityStats[currency].min }}%
                 <span class="date-info"
@@ -102,6 +113,7 @@ import * as echarts from "echarts";
 import { ElLoading, ElSelect, ElOption, ElAlert } from "element-plus";
 import {
   fetchHistoricalVolatility,
+  fetchCurrentDvol,
   type VolatilityData,
 } from "../services/deribit";
 
@@ -110,6 +122,7 @@ const chart = ref<echarts.ECharts | null>(null);
 const loading = ref(false);
 const error = ref("");
 const timeWindow = ref(30); // 默认30天
+const currentDvols = ref<Record<string, number | null>>({});
 
 const availableCurrencies = ["BTC", "SOL", "ETH"];
 const selectedCurrencies = ref(["BTC", "SOL", "ETH"]);
@@ -137,8 +150,8 @@ const formatDate = (dateString: string) => {
 
 const getVolatilityStatus = (value: number) => {
   if (value < 50) return "低波动率";
-  if (value < 100) return "中等波动率";
-  if (value < 150) return "高波动率";
+  if (50 <= value && value < 80) return "中等波动率";
+  if (80 <= value) return "高波动率";
   return "极高波动率";
 };
 
@@ -258,8 +271,27 @@ const initChart = () => {
   window.addEventListener("resize", () => chart.value?.resize());
 };
 
-const updateChartData = (data: Record<string, VolatilityData[]>) => {
+const updateMetricsData = async () => {
+  try {
+    const dvolPromises = ["BTC", "ETH"].map((currency) =>
+      fetchCurrentDvol(currency)
+    );
+    const [btcDvol, ethDvol] = await Promise.all(dvolPromises);
+    currentDvols.value = {
+      BTC: btcDvol,
+      ETH: ethDvol,
+      SOL: null, // SOL doesn't have DVOL data
+    };
+  } catch (e) {
+    console.error("Error fetching current DVOL values:", e);
+  }
+};
+
+const updateChartData = async (data: Record<string, VolatilityData[]>) => {
   if (!chart.value) return;
+
+  // Fetch current DVOL values
+  await updateMetricsData();
 
   // Debug log
   Object.entries(data).forEach(([currency, values]) => {
@@ -308,6 +340,29 @@ const updateChartData = (data: Record<string, VolatilityData[]>) => {
       }
       return [item.timestamp, item.value];
     }),
+    markLine:
+      currency === "BTC" || currency === "ETH"
+        ? {
+            silent: true,
+            symbol: ["none", "none"],
+            lineStyle: {
+              type: "dashed",
+              color: currencyColors[currency as keyof typeof currencyColors],
+              opacity: 0.5,
+              width: 1,
+            },
+            label: {
+              show: true,
+              formatter: `${currency}-current-dvol: {c}%`,
+              position: "insideEndTop",
+            },
+            data: [
+              {
+                yAxis: currentDvols.value[currency] || 0,
+              },
+            ],
+          }
+        : undefined,
   }));
 
   chart.value.setOption({
@@ -345,7 +400,7 @@ const loadData = async () => {
     // Debug log
     console.log("Processed data:", data);
 
-    updateChartData(data);
+    await updateChartData(data);
   } catch (e) {
     error.value = "Failed to fetch volatility data. Please try again later.";
     console.error("Error loading volatility data:", e);

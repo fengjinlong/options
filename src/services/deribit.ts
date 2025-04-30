@@ -115,3 +115,32 @@ export async function getFullYearDvol(symbol: string) {
     throw error;
   }
 }
+
+interface IndexPriceResponse {
+  jsonrpc: string;
+  result: {
+    index_price: number;
+  };
+  testnet: boolean;
+  usIn: number;
+  usOut: number;
+  usDiff: number;
+}
+
+export const fetchCurrentDvol = async (currency: string): Promise<number> => {
+  try {
+    const response = await axios.get<IndexPriceResponse>(
+      `${BASE_URL}/public/get_index_price`,
+      {
+        params: {
+          index_name: `${currency.toLowerCase()}dvol_usdc`,
+        },
+      }
+    );
+
+    return Number(response.data.result.index_price.toFixed(2));
+  } catch (error) {
+    console.error(`Error fetching current DVOL for ${currency}:`, error);
+    throw error;
+  }
+};
