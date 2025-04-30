@@ -147,8 +147,8 @@ const calculateIVRankWithLog = (currentIV: number, data: any[]) => {
   }
 
   // 使用百分位数进行 Winsorizing
-  const p5Index = Math.floor(sortedData.length * 0.05);
-  const p95Index = Math.floor(sortedData.length * 0.95);
+  const p5Index = Math.floor(sortedData.length * 0.1);
+  const p95Index = Math.floor(sortedData.length * 0.9);
   const p5 = sortedData[p5Index];
   const p95 = sortedData[p95Index];
 
