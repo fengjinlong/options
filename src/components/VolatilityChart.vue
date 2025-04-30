@@ -99,14 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import * as echarts from "echarts";
-import {
-  ElLoading,
-  ElSelect,
-  ElOption,
-  ElAlert,
-  ElRadioGroup,
-  ElRadioButton,
-} from "element-plus";
+import { ElLoading, ElSelect, ElOption, ElAlert } from "element-plus";
 import {
   fetchHistoricalVolatility,
   type VolatilityData,
@@ -330,10 +323,6 @@ const updateChartData = (data: Record<string, VolatilityData[]>) => {
     },
     series,
   });
-};
-
-const handleTimeWindowChange = () => {
-  loadData();
 };
 
 const loadData = async () => {
