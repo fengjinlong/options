@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://www.deribit.com/api/v2";
+const BASE_URL = "https://test.deribit.com/api/v2";
 
 // Interface for API response
 interface VolatilityResponse {
@@ -48,3 +48,70 @@ export const fetchHistoricalVolatility = async (
     throw error;
   }
 };
+
+interface DvolResponse {
+  jsonrpc: string;
+  result: {
+    data: Array<{
+      date: string;
+      delivery_price: number;
+    }>;
+  };
+  usIn: number;
+  usOut: number;
+  usDiff: number;
+}
+
+export async function getDvolData(
+  symbol: string,
+  offset: number,
+  count: number = 100
+) {
+  try {
+    const response = await axios.get<DvolResponse>(
+      `${BASE_URL}/public/get_delivery_prices`,
+      {
+        params: {
+          offset,
+          count,
+          index_name: `${symbol.toLowerCase()}dvol_usdc`,
+        },
+      }
+    );
+
+    return response.data.result.data.map((item) => ({
+      date: item.date,
+      dvol: Number(item.delivery_price.toFixed(2)), // Just keep 2 decimal places
+    }));
+  } catch (error) {
+    console.error(`Error fetching DVOL data for ${symbol}:`, error);
+    throw error;
+  }
+}
+
+export async function getFullYearDvol(symbol: string) {
+  const TOTAL_DAYS = 365;
+  const PAGE_SIZE = 100;
+  const pages = Math.ceil(TOTAL_DAYS / PAGE_SIZE);
+  const promises = [];
+
+  for (let i = 0; i < pages; i++) {
+    const offset = i * PAGE_SIZE;
+    const count = Math.min(PAGE_SIZE, TOTAL_DAYS - offset);
+    promises.push(getDvolData(symbol, offset, count));
+  }
+
+  try {
+    const results = await Promise.all(promises);
+    const data = results
+      .flat()
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Log the processed data for debugging
+    console.log(`Processed ${symbol} DVOL data:`, data);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching full year DVOL data for ${symbol}:`, error);
+    throw error;
+  }
+}
