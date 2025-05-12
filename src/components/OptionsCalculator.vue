@@ -439,23 +439,20 @@ onUnmounted(() => {
               <el-input
                 v-model.number="strategy.quantity"
                 type="number"
-                :min="1"
+                :min="0.01"
+                :step="0.01"
                 @blur="(e) => {
                   const target = e.target as HTMLInputElement;
                   const numVal = Number(target.value);
-                  if (!numVal || numVal < 1) {
+                  if (!numVal || numVal < 0.01) {
                     strategy.quantity = 10; // 设置默认值
                   }
                 }"
-                placeholder="请输入数量"
+                placeholder="请输入数量（最小0.01）"
               />
             </el-form-item>
           </el-form>
         </el-card>
-
-        <!-- <div class="add-strategy">
-          <el-button type="primary" @click="addStrategy">添加策略</el-button>
-        </div> -->
       </div>
 
       <div class="chart-container">
