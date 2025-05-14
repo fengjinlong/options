@@ -5,6 +5,7 @@ import SolVolatility from "../views/SolVolatility.vue";
 import CmcVolatility from "../views/CmcVolatility.vue";
 import VolatilityChart from "../components/VolatilityChart.vue";
 import DvolChart from "../components/DvolChart.vue";
+import OptionsCalculator from "../views/OptionsCalculator.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -38,6 +39,11 @@ const router = createRouter({
       path: "/dvol-chart",
       name: "dvol-chart",
       component: DvolChart,
+    },
+    {
+      path: "/options-calculator",
+      name: "options-calculator",
+      component: OptionsCalculator,
     },
   ],
 });

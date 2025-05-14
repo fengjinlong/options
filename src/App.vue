@@ -24,6 +24,9 @@ const router = useRouter();
         <el-button type="primary" @click="router.push('/dvol-chart')"
           >DVOL</el-button
         >
+        <el-button type="primary" @click="router.push('/options-calculator')"
+          >期权价格估算</el-button
+        >
       </div>
     </header>
     <router-view></router-view>
