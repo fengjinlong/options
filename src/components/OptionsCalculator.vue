@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, onUnmounted } from "vue";
+import { ref, onMounted, watch, onUnmounted, computed } from "vue";
 import {
   ElForm,
   ElFormItem,
@@ -27,6 +27,7 @@ interface Strategy {
   strikePrice: number;
   premium: number;
   quantity: number;
+  visible: boolean;
 }
 
 // 表单数据
@@ -37,6 +38,7 @@ const strategies = ref<Strategy[]>([
     strikePrice: 100,
     premium: 5,
     quantity: 10,
+    visible: true,
   },
 ]);
 
@@ -44,6 +46,11 @@ let nextId = 2;
 
 // 图表实例
 let chart: echarts.ECharts | null = null;
+
+// 计算属性：只显示可见的策略
+const visibleStrategies = computed(() => {
+  return strategies.value.filter((strategy) => strategy.visible);
+});
 
 // 获取策略类型名称的辅助函数
 const getStrategyLabel = (type: string): string => {
@@ -59,14 +66,15 @@ const addStrategy = () => {
     strikePrice: 100,
     premium: 5,
     quantity: 10,
+    visible: true,
   });
 };
 
-// 删除策略
-const removeStrategy = (id: number) => {
-  const index = strategies.value.findIndex((s) => s.id === id);
-  if (index !== -1) {
-    strategies.value.splice(index, 1);
+// 隐藏/显示策略
+const toggleStrategyVisibility = (id: number) => {
+  const strategy = strategies.value.find((s) => s.id === id);
+  if (strategy) {
+    strategy.visible = !strategy.visible;
   }
 };
 
@@ -105,9 +113,9 @@ const calculateSingleStrategyProfitLoss = (
   return singleUnitPnL * quantity;
 };
 
-// 计算组合策略的总盈亏
+// 计算组合策略的总盈亏（只计算可见策略）
 const calculateTotalProfitLoss = (spotPrice: number): number => {
-  return strategies.value.reduce(
+  return visibleStrategies.value.reduce(
     (total, strategy) =>
       total + calculateSingleStrategyProfitLoss(strategy, spotPrice),
     0
@@ -118,8 +126,8 @@ const calculateTotalProfitLoss = (spotPrice: number): number => {
 const updateChart = () => {
   if (!chart) return;
 
-  // 验证所有策略的行权价格是否有效
-  const hasInvalidPrice = strategies.value.some((s) => {
+  // 验证所有可见策略的行权价格是否有效
+  const hasInvalidPrice = visibleStrategies.value.some((s) => {
     return (
       typeof s.strikePrice !== "number" ||
       isNaN(s.strikePrice) ||
@@ -131,10 +139,10 @@ const updateChart = () => {
     return; // 如果有无效价格，不更新图表
   }
 
-  // 找出所有行权价的平均值作为基准价格
+  // 找出所有可见行权价的平均值作为基准价格
   const avgStrikePrice =
-    strategies.value.reduce((sum, s) => sum + (s.strikePrice || 0), 0) /
-    strategies.value.length;
+    visibleStrategies.value.reduce((sum, s) => sum + (s.strikePrice || 0), 0) /
+    visibleStrategies.value.length;
 
   if (!avgStrikePrice || isNaN(avgStrikePrice)) {
     return; // 如果平均价格无效，不更新图表
@@ -142,7 +150,9 @@ const updateChart = () => {
 
   const xData: number[] = [];
   const yData: number[] = [];
-  const individualStrategyData: number[][] = strategies.value.map(() => []);
+  const individualStrategyData: number[][] = visibleStrategies.value.map(
+    () => []
+  );
 
   // 生成数据点
   const minPrice = avgStrikePrice * 0.5;
@@ -154,7 +164,7 @@ const updateChart = () => {
     yData.push(calculateTotalProfitLoss(price));
 
     // 计算每个单独策略的盈亏
-    strategies.value.forEach((strategy, index) => {
+    visibleStrategies.value.forEach((strategy, index) => {
       individualStrategyData[index].push(
         calculateSingleStrategyProfitLoss(strategy, price)
       );
@@ -198,11 +208,11 @@ const updateChart = () => {
           if (param.seriesName === "总盈亏") {
             result += `总盈亏: ${param.data[1].toFixed(2)}<br/>`;
           } else {
-            const strategyIndex = strategies.value.findIndex(
+            const strategyIndex = visibleStrategies.value.findIndex(
               (s) => `${getStrategyLabel(s.type)}` === param.seriesName
             );
             if (strategyIndex !== -1) {
-              const strategy = strategies.value[strategyIndex];
+              const strategy = visibleStrategies.value[strategyIndex];
               result += `${param.seriesName} (数量: ${
                 strategy.quantity
               }): ${param.data[1].toFixed(2)}<br/>`;
@@ -215,13 +225,16 @@ const updateChart = () => {
     legend: {
       data: [
         "总盈亏",
-        ...strategies.value.map((s) => `${getStrategyLabel(s.type)}`),
+        ...visibleStrategies.value.map((s) => `${getStrategyLabel(s.type)}`),
       ],
       top: 30,
       selected: {
         总盈亏: true,
         ...Object.fromEntries(
-          strategies.value.map((s) => [`${getStrategyLabel(s.type)}`, true])
+          visibleStrategies.value.map((s) => [
+            `${getStrategyLabel(s.type)}`,
+            true,
+          ])
         ),
       },
     },
@@ -295,7 +308,7 @@ const updateChart = () => {
         },
       },
       ...individualStrategyData.map((data, index) => ({
-        name: `${getStrategyLabel(strategies.value[index].type)}`,
+        name: `${getStrategyLabel(visibleStrategies.value[index].type)}`,
         type: "line" as const,
         data: xData.map((x, i) => [x, data[i]]),
         smooth: true,
@@ -366,31 +379,47 @@ onUnmounted(() => {
     <!-- <h2>计算器</h2> -->
 
     <div class="main-container">
-      <el-button type="primary" @click="addStrategy">添加策略</el-button>
+      <div class="header-controls">
+        <el-button type="primary" @click="addStrategy">添加策略</el-button>
+      </div>
+
       <div class="strategies-container">
         <el-card
           v-for="strategy in strategies"
           :key="strategy.id"
           class="strategy-card"
+          :class="{ 'strategy-hidden': !strategy.visible }"
         >
           <template #header>
             <div class="card-header">
-              <span>{{ getStrategyLabel(strategy.type) }}</span>
-              <el-button
-                type="danger"
-                link
-                size="small"
-                @click="removeStrategy(strategy.id)"
-                :disabled="strategies.length === 1"
+              <span
+                class="strategy-title"
+                :class="{ 'strategy-title-hidden': !strategy.visible }"
               >
-                删除
-              </el-button>
+                {{ getStrategyLabel(strategy.type) }}
+                <span v-if="!strategy.visible" class="hidden-indicator"
+                  >(已隐藏)</span
+                >
+              </span>
+              <div class="card-actions">
+                <el-button
+                  :type="strategy.visible ? 'danger' : 'success'"
+                  link
+                  size="small"
+                  @click="toggleStrategyVisibility(strategy.id)"
+                >
+                  {{ strategy.visible ? "隐藏" : "显示" }}
+                </el-button>
+              </div>
             </div>
           </template>
 
-          <el-form label-width="100px">
+          <el-form
+            label-width="100px"
+            :class="{ 'form-disabled': !strategy.visible }"
+          >
             <el-form-item label="策略类型">
-              <el-select v-model="strategy.type">
+              <el-select v-model="strategy.type" :disabled="!strategy.visible">
                 <el-option
                   v-for="item in strategyTypes"
                   :key="item.value"
@@ -409,6 +438,7 @@ onUnmounted(() => {
                 v-model.number="strategy.strikePrice"
                 type="number"
                 :min="0"
+                :disabled="!strategy.visible"
                 @blur="(e) => {
                   const target = e.target as HTMLInputElement;
                   const numVal = Number(target.value);
@@ -431,6 +461,7 @@ onUnmounted(() => {
               <el-input
                 v-model.number="strategy.premium"
                 type="number"
+                :disabled="!strategy.visible"
                 placeholder="请输入期权费"
               />
             </el-form-item>
@@ -441,6 +472,7 @@ onUnmounted(() => {
                 type="number"
                 :min="0.01"
                 :step="0.01"
+                :disabled="!strategy.visible"
                 @blur="(e) => {
                   const target = e.target as HTMLInputElement;
                   const numVal = Number(target.value);
@@ -480,6 +512,12 @@ onUnmounted(() => {
   height: calc(100% - 60px); /* 减去标题的高度和边距 */
 }
 
+.header-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .strategies-container {
   width: 280px;
   flex-direction: column;
@@ -491,12 +529,43 @@ onUnmounted(() => {
 .strategy-card {
   width: 100%;
   margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.strategy-card.strategy-hidden {
+  opacity: 0.6;
+  background-color: #f5f7fa;
+  border: 1px dashed #dcdfe6;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.strategy-title {
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.strategy-title-hidden {
+  color: #909399;
+}
+
+.hidden-indicator {
+  font-size: 12px;
+  color: #f56c6c;
+  margin-left: 5px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.form-disabled {
+  pointer-events: none;
 }
 
 .add-strategy {
