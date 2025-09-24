@@ -6,6 +6,7 @@ import CmcVolatility from "../views/CmcVolatility.vue";
 import VolatilityChart from "../components/VolatilityChart.vue";
 import DvolChart from "../components/DvolChart.vue";
 import OptionsCalculator from "../views/OptionsCalculator.vue";
+import Sjfx from "../views/Sjfx.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -44,6 +45,11 @@ const router = createRouter({
       path: "/options-calculator",
       name: "options-calculator",
       component: OptionsCalculator,
+    },
+    {
+      path: "/sjfx",
+      name: "sjfx",
+      component: Sjfx,
     },
   ],
 });

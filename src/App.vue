@@ -27,6 +27,9 @@ const router = useRouter();
         <el-button type="primary" @click="router.push('/options-calculator')"
           >期权价格估算</el-button
         >
+        <el-button type="primary" @click="router.push('/sjfx')"
+          >项目数据分析</el-button
+        >
       </div>
     </header>
     <router-view></router-view>
