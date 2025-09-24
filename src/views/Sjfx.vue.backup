@@ -2,7 +2,9 @@
   <div class="valuation-container">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1>加密项目估值分析工具</h1>
+      <h1 style="font-size: 24px; font-weight: bold; margin: 0">
+        加密项目估值分析工具
+      </h1>
       <p class="subtitle">Crypto Project Valuation Tool</p>
     </div>
 
@@ -42,7 +44,7 @@
 
       <!-- 核心财务指标 -->
       <div class="input-group">
-        <!-- <h3>核心财务指标</h3> -->
+        <h3>核心财务指标</h3>
         <div class="metrics-grid">
           <div class="metric-item">
             <label>FDV (完全稀释估值)</label>
@@ -53,11 +55,35 @@
                 placeholder="0"
                 class="form-input"
               />
-              <select v-model="projectData.fdvUnit" class="unit-select">
-                <option value="1">个</option>
-                <option value="1000000">m (百万)</option>
-                <option value="1000000000">b (十亿)</option>
-              </select>
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.fdvUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.fdvUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.fdvUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -70,11 +96,35 @@
                 placeholder="0"
                 class="form-input"
               />
-              <select v-model="projectData.mcapUnit" class="unit-select">
-                <option value="1">个</option>
-                <option value="1000000">m (百万)</option>
-                <option value="1000000000">b (十亿)</option>
-              </select>
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.mcapUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.mcapUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.mcapUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -87,11 +137,35 @@
                 placeholder="0"
                 class="form-input"
               />
-              <select v-model="projectData.tvlUnit" class="unit-select">
-                <option value="1">个</option>
-                <option value="1000000">m (百万)</option>
-                <option value="1000000000">b (十亿)</option>
-              </select>
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.tvlUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.tvlUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.tvlUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -104,11 +178,35 @@
                 placeholder="0"
                 class="form-input"
               />
-              <select v-model="projectData.revenueUnit" class="unit-select">
-                <option value="1">个</option>
-                <option value="1000000">m (百万)</option>
-                <option value="1000000000">b (十亿)</option>
-              </select>
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.revenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.revenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.revenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -121,11 +219,35 @@
                 placeholder="0"
                 class="form-input"
               />
-              <select v-model="projectData.netRevenueUnit" class="unit-select">
-                <option value="1">个</option>
-                <option value="1000000">m (百万)</option>
-                <option value="1000000000">b (十亿)</option>
-              </select>
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.netRevenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.netRevenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.netRevenueUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -357,6 +479,25 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 
+// 定义分析结果类型
+interface AnalysisResult {
+  fdvMcapRatio: number;
+  mcapTvlRatio: number;
+  mcapRevenueRatio: number;
+  fdvNetRevenueRatio: number;
+  fdvTvlRatio: number;
+  revenueGrowth: number;
+  fdvMcapStatus: string;
+  mcapTvlStatus: string;
+  mcapRevenueStatus: string;
+  fdvNetRevenueStatus: string;
+  fdvTvlStatus: string;
+  revenueGrowthStatus: string;
+  overallStatus: string;
+  riskLevel: string;
+  investmentAdvice: string;
+}
+
 // 项目数据
 const projectData = ref({
   name: "",
@@ -375,7 +516,7 @@ const projectData = ref({
 });
 
 // 分析结果
-const analysisResult = ref(null);
+const analysisResult = ref<AnalysisResult | null>(null);
 
 // 表单验证
 const isFormValid = computed(() => {
@@ -497,14 +638,15 @@ const evaluateMcapTvl = (ratio: number) => {
 };
 
 const evaluateMcapRevenue = (ratio: number, type: string) => {
-  const standards = {
-    defi: { good: [10, 30], caution: 40 },
-    dex: { good: [10, 30], caution: 40 },
-    blockchain: { good: [30, 100], caution: 150 },
-    stablecoin: { good: [5, 15], caution: 20 },
-    cex: { good: [5, 20], caution: 30 },
-    other: { good: [20, 50], caution: 60 },
-  };
+  const standards: Record<string, { good: [number, number]; caution: number }> =
+    {
+      defi: { good: [10, 30], caution: 40 },
+      dex: { good: [10, 30], caution: 40 },
+      blockchain: { good: [30, 100], caution: 150 },
+      stablecoin: { good: [5, 15], caution: 20 },
+      cex: { good: [5, 20], caution: 30 },
+      other: { good: [20, 50], caution: 60 },
+    };
 
   const standard = standards[type] || standards.other;
 
@@ -535,7 +677,7 @@ const evaluateRevenueGrowth = (growth: number) => {
 };
 
 // 综合状态计算
-const calculateOverallStatus = (statuses: any) => {
+const calculateOverallStatus = (statuses: Record<string, string>) => {
   const goodCount = Object.values(statuses).filter((status) =>
     ["健康", "合理", "可能低估", "显著低估"].includes(status)
   ).length;
@@ -555,7 +697,7 @@ const calculateOverallStatus = (statuses: any) => {
 };
 
 // 风险等级计算
-const calculateRiskLevel = (statuses: any) => {
+const calculateRiskLevel = (statuses: Record<string, string>) => {
   const riskCount = Object.values(statuses).filter((status) =>
     ["高风险", "高估", "高估警示", "极端高估", "极高风险"].includes(status)
   ).length;
@@ -682,26 +824,67 @@ const getRiskClass = (risk: string) => {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
 }
 
 .metric-item {
   display: flex;
   flex-direction: column;
+  margin-bottom: 20px;
 }
 
 .input-with-unit {
   display: flex;
+  flex-direction: column;
   gap: 10px;
+  max-width: 50%;
 }
 
 .input-with-unit .form-input {
-  flex: 1;
+  width: 100%;
 }
 
-.unit-select {
-  min-width: 100px;
+.unit-radio-group {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background: white;
+  border: 1px solid #e1e8ed;
+}
+
+.radio-item:hover {
+  background: #e3f2fd;
+  border-color: #3498db;
+}
+
+.radio-item:has(.radio-input:checked) {
+  background: #3498db;
+  border-color: #2980b9;
+  color: white;
+}
+
+.radio-input {
+  display: none;
+}
+
+.radio-label {
+  font-weight: 600;
+  font-size: 14px;
+  user-select: none;
 }
 
 .unit-text {
@@ -713,6 +896,8 @@ const getRiskClass = (risk: string) => {
   border-radius: 8px;
   font-weight: 600;
   color: #2c3e50;
+  height: 48px;
+  justify-content: center;
 }
 
 .action-section {
@@ -950,6 +1135,14 @@ const getRiskClass = (risk: string) => {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+  }
+
+  .unit-radio-group {
+    flex-wrap: wrap;
+  }
+  
+  .input-with-unit {
+    max-width: 100%;
   }
 }
 </style>

@@ -28,7 +28,10 @@ const router = useRouter();
           >期权价格估算</el-button
         >
         <el-button type="primary" @click="router.push('/sjfx')"
-          >项目数据分析</el-button
+          >加密项目估值分析</el-button
+        >
+        <el-button type="success" @click="router.push('/sjfx2')"
+          >加密项目估值分析2</el-button
         >
       </div>
     </header>
@@ -63,5 +66,17 @@ const router = useRouter();
 .nav-buttons {
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .nav-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav-buttons .el-button {
+    margin-bottom: 5px;
+  }
 }
 </style>

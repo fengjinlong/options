@@ -7,6 +7,7 @@ import VolatilityChart from "../components/VolatilityChart.vue";
 import DvolChart from "../components/DvolChart.vue";
 import OptionsCalculator from "../views/OptionsCalculator.vue";
 import Sjfx from "../views/Sjfx.vue";
+import Sjfx2 from "../views/Sjfx2.0.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -50,6 +51,11 @@ const router = createRouter({
       path: "/sjfx",
       name: "sjfx",
       component: Sjfx,
+    },
+    {
+      path: "/sjfx2",
+      name: "sjfx2",
+      component: Sjfx2,
     },
   ],
 });

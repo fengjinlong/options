@@ -211,47 +211,6 @@
           </div>
 
           <div class="metric-item">
-            <label>年化协议净收入</label>
-            <div class="input-with-unit">
-              <input
-                v-model.number="projectData.netRevenue"
-                type="number"
-                placeholder="0"
-                class="form-input"
-              />
-              <div class="unit-radio-group">
-                <label class="radio-item">
-                  <input
-                    type="radio"
-                    :value="1"
-                    v-model="projectData.netRevenueUnit"
-                    class="radio-input"
-                  />
-                  <span class="radio-label">个</span>
-                </label>
-                <label class="radio-item">
-                  <input
-                    type="radio"
-                    :value="1000000"
-                    v-model="projectData.netRevenueUnit"
-                    class="radio-input"
-                  />
-                  <span class="radio-label">m</span>
-                </label>
-                <label class="radio-item">
-                  <input
-                    type="radio"
-                    :value="1000000000"
-                    v-model="projectData.netRevenueUnit"
-                    class="radio-input"
-                  />
-                  <span class="radio-label">b</span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="metric-item">
             <label>收入增长率季度 (%)</label>
             <div class="input-with-unit">
               <input
@@ -318,19 +277,6 @@
           </div>
           <div class="metric-status">
             {{ analysisResult.mcapRevenueStatus }}
-          </div>
-        </div>
-
-        <div class="result-item">
-          <div class="metric-name">FDV/年化协议净收入</div>
-          <div
-            class="metric-value"
-            :class="getStatusClass(analysisResult.fdvNetRevenueStatus)"
-          >
-            {{ analysisResult.fdvNetRevenueRatio.toFixed(2) }}
-          </div>
-          <div class="metric-status">
-            {{ analysisResult.fdvNetRevenueStatus }}
           </div>
         </div>
 
@@ -442,17 +388,7 @@
         </div>
 
         <div class="explanation-item">
-          <h4>4. FDV/年化协议净收入 (估值健康度)</h4>
-          <ul>
-            <li><span class="range good"><20:</span> 显著低估</li>
-            <li><span class="range good">20-60:</span> 合理</li>
-            <li><span class="range caution">60-150:</span> 偏高</li>
-            <li><span class="range high">>150:</span> 高估警示</li>
-          </ul>
-        </div>
-
-        <div class="explanation-item">
-          <h4>5. FDV/TVL (估值与资产规模关系)</h4>
+          <h4>4. FDV/TVL (估值与资产规模关系)</h4>
           <ul>
             <li><span class="range good"><0.5:</span> 显著低估</li>
             <li><span class="range good">0.5-1.5:</span> 合理</li>
@@ -462,7 +398,7 @@
         </div>
 
         <div class="explanation-item">
-          <h4>6. 收入增长率 (项目成长性参考)</h4>
+          <h4>5. 收入增长率 (项目成长性参考)</h4>
           <ul>
             <li><span class="range good">>50%:</span> 爆发式增长，估值可高</li>
             <li><span class="range good">10%-50%:</span> 健康增长</li>
@@ -484,13 +420,11 @@ interface AnalysisResult {
   fdvMcapRatio: number;
   mcapTvlRatio: number;
   mcapRevenueRatio: number;
-  fdvNetRevenueRatio: number;
   fdvTvlRatio: number;
   revenueGrowth: number;
   fdvMcapStatus: string;
   mcapTvlStatus: string;
   mcapRevenueStatus: string;
-  fdvNetRevenueStatus: string;
   fdvTvlStatus: string;
   revenueGrowthStatus: string;
   overallStatus: string;
@@ -510,8 +444,6 @@ const projectData = ref({
   tvlUnit: 1000000,
   revenue: 0,
   revenueUnit: 1000000,
-  netRevenue: 0,
-  netRevenueUnit: 1000000,
   revenueGrowth: 0,
 });
 
@@ -524,8 +456,7 @@ const isFormValid = computed(() => {
     projectData.value.fdv > 0 &&
     projectData.value.mcap > 0 &&
     projectData.value.tvl > 0 &&
-    projectData.value.revenue > 0 &&
-    projectData.value.netRevenue > 0
+    projectData.value.revenue > 0
   );
 });
 
@@ -555,16 +486,11 @@ const calculateValuation = () => {
     projectData.value.revenue,
     projectData.value.revenueUnit
   );
-  const netRevenue = convertToMillion(
-    projectData.value.netRevenue,
-    projectData.value.netRevenueUnit
-  );
 
   // 计算比率
   const fdvMcapRatio = fdv / mcap;
   const mcapTvlRatio = mcap / tvl;
   const mcapRevenueRatio = mcap / revenue;
-  const fdvNetRevenueRatio = fdv / netRevenue;
   const fdvTvlRatio = fdv / tvl;
 
   // 判断状态
@@ -574,7 +500,6 @@ const calculateValuation = () => {
     mcapRevenueRatio,
     projectData.value.type
   );
-  const fdvNetRevenueStatus = evaluateFdvNetRevenue(fdvNetRevenueRatio);
   const fdvTvlStatus = evaluateFdvTvl(fdvTvlRatio);
   const revenueGrowthStatus = evaluateRevenueGrowth(
     projectData.value.revenueGrowth
@@ -585,7 +510,6 @@ const calculateValuation = () => {
     fdvMcapStatus,
     mcapTvlStatus,
     mcapRevenueStatus,
-    fdvNetRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
   });
@@ -594,7 +518,6 @@ const calculateValuation = () => {
     fdvMcapStatus,
     mcapTvlStatus,
     mcapRevenueStatus,
-    fdvNetRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
   });
@@ -605,13 +528,11 @@ const calculateValuation = () => {
     fdvMcapRatio,
     mcapTvlRatio,
     mcapRevenueRatio,
-    fdvNetRevenueRatio,
     fdvTvlRatio,
     revenueGrowth: projectData.value.revenueGrowth,
     fdvMcapStatus,
     mcapTvlStatus,
     mcapRevenueStatus,
-    fdvNetRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
     overallStatus,
@@ -654,13 +575,6 @@ const evaluateMcapRevenue = (ratio: number, type: string) => {
   if (ratio <= standard.good[1]) return "合理";
   if (ratio <= standard.caution) return "偏高";
   return "高估";
-};
-
-const evaluateFdvNetRevenue = (ratio: number) => {
-  if (ratio < 20) return "显著低估";
-  if (ratio <= 60) return "合理";
-  if (ratio <= 150) return "偏高";
-  return "高估警示";
 };
 
 const evaluateFdvTvl = (ratio: number) => {
