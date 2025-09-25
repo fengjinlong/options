@@ -622,7 +622,7 @@ const calculateRiskLevel = (statuses: Record<string, string>) => {
 };
 
 // 投资建议生成
-const generateInvestmentAdvice = (overallStatus: string, riskLevel: string) => {
+const generateInvestmentAdvice = (overallStatus: string) => {
   if (overallStatus === "高估") return "建议谨慎投资，等待更好的入场时机";
   if (overallStatus === "偏高估") return "可考虑小仓位投资，密切关注项目发展";
   if (overallStatus === "合理估值") return "可考虑投资，但需关注收入增长趋势";
@@ -1054,7 +1054,7 @@ const getRiskClass = (risk: string) => {
   .unit-radio-group {
     flex-wrap: wrap;
   }
-  
+
   .input-with-unit {
     max-width: 100%;
   }

@@ -433,9 +433,9 @@
 
         <!-- CSS 百分比柱状图 -->
         <div class="comparison-charts">
-          <div 
-            class="chart-item" 
-            v-for="(metric, key) in comparisonData" 
+          <div
+            class="chart-item"
+            v-for="(metric, key) in comparisonData"
             :key="key"
           >
             <div class="chart-title">{{ metric.name }}</div>
@@ -444,24 +444,28 @@
               <div class="bar-wrapper">
                 <div class="bar-label">{{ projectA.name || "项目A" }}</div>
                 <div class="bar-container">
-                  <div 
-                    class="bar-fill bar-a" 
+                  <div
+                    class="bar-fill bar-a"
                     :style="{ width: metric.percentageA + '%' }"
                   >
-                    <span class="bar-value">{{ metric.valueA.toFixed(2) }}</span>
+                    <span class="bar-value">{{
+                      metric.valueA.toFixed(2)
+                    }}</span>
                   </div>
                 </div>
               </div>
-              
+
               <!-- 项目B 柱状图 -->
               <div class="bar-wrapper">
                 <div class="bar-label">{{ projectB.name || "项目B" }}</div>
                 <div class="bar-container">
-                  <div 
-                    class="bar-fill bar-b" 
+                  <div
+                    class="bar-fill bar-b"
                     :style="{ width: metric.percentageB + '%' }"
                   >
-                    <span class="bar-value">{{ metric.valueB.toFixed(2) }}</span>
+                    <span class="bar-value">{{
+                      metric.valueB.toFixed(2)
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -549,7 +553,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch } from "vue";
 
 // 响应式数据
 const analysisMode = ref("single");
@@ -726,7 +730,10 @@ const generateTextAnalysis = (ratios: any, assessments: any) => {
 // 生成综合结论
 const generateOverallConclusion = (assessments: any) => {
   const riskCount = Object.values(assessments).filter(
-    (assessment) => assessment === "极高风险" || assessment === "高估警示" || assessment === "偏高"
+    (assessment) =>
+      assessment === "极高风险" ||
+      assessment === "高估警示" ||
+      assessment === "偏高"
   ).length;
 
   const healthyCount = Object.values(assessments).filter(
@@ -744,34 +751,34 @@ const generateOverallConclusion = (assessments: any) => {
 
 // 计算对比数据
 const comparisonData = computed(() => {
-  if (analysisMode.value !== 'dual') return [];
-  
+  if (analysisMode.value !== "dual") return [];
+
   const ratiosA = calculateRatios(projectA.value);
   const ratiosB = calculateRatios(projectB.value);
-  
+
   const metrics = [
-    { key: 'fdvMcap', name: 'FDV/MCap' },
-    { key: 'mcapTvl', name: 'MCap/TVL' },
-    { key: 'mcapRevenue', name: 'MCap/年化收入' },
-    { key: 'fdvTvl', name: 'FDV/TVL' },
-    { key: 'growthRate', name: '收入增长率' }
+    { key: "fdvMcap", name: "FDV/MCap" },
+    { key: "mcapTvl", name: "MCap/TVL" },
+    { key: "mcapRevenue", name: "MCap/年化收入" },
+    { key: "fdvTvl", name: "FDV/TVL" },
+    { key: "growthRate", name: "收入增长率" },
   ];
-  
-  return metrics.map(metric => {
+
+  return metrics.map((metric) => {
     const valueA = ratiosA[metric.key as keyof typeof ratiosA];
     const valueB = ratiosB[metric.key as keyof typeof ratiosB];
-    
+
     // 计算百分比（基于较大值）
     const maxValue = Math.max(valueA, valueB);
     const percentageA = maxValue > 0 ? (valueA / maxValue) * 100 : 0;
     const percentageB = maxValue > 0 ? (valueB / maxValue) * 100 : 0;
-    
+
     return {
       name: metric.name,
       valueA,
       valueB,
       percentageA,
-      percentageB
+      percentageB,
     };
   });
 });
@@ -859,12 +866,7 @@ const generateComparisonConclusion = (ratiosA: any, ratiosB: any) => {
   let scoreB = 0;
 
   // 评分逻辑（数值越小越好，除了增长率）
-  const metrics = [
-    "fdvMcap",
-    "mcapTvl",
-    "mcapRevenue",
-    "fdvTvl",
-  ];
+  const metrics = ["fdvMcap", "mcapTvl", "mcapRevenue", "fdvTvl"];
 
   metrics.forEach((metric) => {
     if (ratiosA[metric] < ratiosB[metric]) scoreA++;
@@ -899,8 +901,14 @@ const getMetricName = (key: string) => {
 // 获取数值样式类
 const getValueClass = (key: string, value: number) => {
   const assessment = assessMetric(key, value);
-  if (assessment === "合理" || assessment === "可能低估") return "value-healthy";
-  if (assessment === "偏高" || assessment === "高估警示" || assessment === "极高风险") return "value-risky";
+  if (assessment === "合理" || assessment === "可能低估")
+    return "value-healthy";
+  if (
+    assessment === "偏高" ||
+    assessment === "高估警示" ||
+    assessment === "极高风险"
+  )
+    return "value-risky";
   return "value-neutral";
 };
 
@@ -908,7 +916,11 @@ const getValueClass = (key: string, value: number) => {
 const getAssessmentClass = (assessment: string) => {
   if (assessment === "合理" || assessment === "可能低估")
     return "assessment-healthy";
-  if (assessment === "偏高" || assessment === "高估警示" || assessment === "极高风险")
+  if (
+    assessment === "偏高" ||
+    assessment === "高估警示" ||
+    assessment === "极高风险"
+  )
     return "assessment-risky";
   return "assessment-neutral";
 };
