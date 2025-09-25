@@ -522,7 +522,7 @@ const calculateValuation = () => {
     revenueGrowthStatus,
   });
 
-  const investmentAdvice = generateInvestmentAdvice(overallStatus, riskLevel);
+  const investmentAdvice = generateInvestmentAdvice(overallStatus);
 
   analysisResult.value = {
     fdvMcapRatio,
