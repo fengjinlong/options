@@ -222,6 +222,88 @@
               <span class="unit-text">%</span>
             </div>
           </div>
+
+          <div class="metric-item">
+            <label>月度盈利</label>
+            <div class="input-with-unit">
+              <input
+                v-model.number="projectData.monthlyProfit"
+                type="number"
+                placeholder="0"
+                class="form-input"
+              />
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.monthlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.monthlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.monthlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-item">
+            <label>季度盈利</label>
+            <div class="input-with-unit">
+              <input
+                v-model.number="projectData.quarterlyProfit"
+                type="number"
+                placeholder="0"
+                class="form-input"
+              />
+              <div class="unit-radio-group">
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1"
+                    v-model="projectData.quarterlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">个</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000"
+                    v-model="projectData.quarterlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">m</span>
+                </label>
+                <label class="radio-item">
+                  <input
+                    type="radio"
+                    :value="1000000000"
+                    v-model="projectData.quarterlyProfitUnit"
+                    class="radio-input"
+                  />
+                  <span class="radio-label">b</span>
+                </label>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -302,6 +384,28 @@
           <div class="metric-status">
             {{ analysisResult.revenueGrowthStatus }}
           </div>
+        </div>
+
+        <div class="result-item">
+          <div class="metric-name">P/S (月度)</div>
+          <div
+            class="metric-value"
+            :class="getStatusClass(analysisResult.psMonthlyStatus)"
+          >
+            {{ analysisResult.psMonthlyRatio.toFixed(2) }}
+          </div>
+          <div class="metric-status">{{ analysisResult.psMonthlyStatus }}</div>
+        </div>
+
+        <div class="result-item">
+          <div class="metric-name">P/S (季度)</div>
+          <div
+            class="metric-value"
+            :class="getStatusClass(analysisResult.psQuarterlyStatus)"
+          >
+            {{ analysisResult.psQuarterlyRatio.toFixed(2) }}
+          </div>
+          <div class="metric-status">{{ analysisResult.psQuarterlyStatus }}</div>
         </div>
       </div>
 
@@ -407,6 +511,18 @@
             </li>
           </ul>
         </div>
+
+        <div class="explanation-item">
+          <h4>6. P/S 比率 (市值收入比)</h4>
+          <ul>
+            <li><span class="range good">月度: <5 便宜, 5~15 合理, >15 偏贵</span></li>
+            <li><span class="range good">季度: <4 便宜, 4~10 合理, >10 偏贵</span></li>
+          </ul>
+          <p style="margin-top: 10px; color: #666; font-size: 0.9rem;">
+            P/S比率表示市值相对于收入的比例，比如每1美元收入支付10美元的估值。
+            月度盈利年化(×12)，季度盈利年化(×4)。
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -422,11 +538,15 @@ interface AnalysisResult {
   mcapRevenueRatio: number;
   fdvTvlRatio: number;
   revenueGrowth: number;
+  psMonthlyRatio: number;
+  psQuarterlyRatio: number;
   fdvMcapStatus: string;
   mcapTvlStatus: string;
   mcapRevenueStatus: string;
   fdvTvlStatus: string;
   revenueGrowthStatus: string;
+  psMonthlyStatus: string;
+  psQuarterlyStatus: string;
   overallStatus: string;
   riskLevel: string;
   investmentAdvice: string;
@@ -445,6 +565,10 @@ const projectData = ref({
   revenue: 0,
   revenueUnit: 1000000,
   revenueGrowth: 0,
+  monthlyProfit: 0,
+  monthlyProfitUnit: 1000000,
+  quarterlyProfit: 0,
+  quarterlyProfitUnit: 1000000,
 });
 
 // 分析结果
@@ -456,7 +580,8 @@ const isFormValid = computed(() => {
     projectData.value.fdv > 0 &&
     projectData.value.mcap > 0 &&
     projectData.value.tvl > 0 &&
-    projectData.value.revenue > 0
+    projectData.value.revenue > 0 &&
+    (projectData.value.monthlyProfit > 0 || projectData.value.quarterlyProfit > 0)
   );
 });
 
@@ -486,12 +611,24 @@ const calculateValuation = () => {
     projectData.value.revenue,
     projectData.value.revenueUnit
   );
+  const monthlyProfit = convertToMillion(
+    projectData.value.monthlyProfit,
+    projectData.value.monthlyProfitUnit
+  );
+  const quarterlyProfit = convertToMillion(
+    projectData.value.quarterlyProfit,
+    projectData.value.quarterlyProfitUnit
+  );
 
   // 计算比率
   const fdvMcapRatio = fdv / mcap;
   const mcapTvlRatio = mcap / tvl;
   const mcapRevenueRatio = mcap / revenue;
   const fdvTvlRatio = fdv / tvl;
+  
+  // 计算P/S比率
+  const psMonthlyRatio = monthlyProfit > 0 ? mcap / (monthlyProfit * 12) : 0;
+  const psQuarterlyRatio = quarterlyProfit > 0 ? mcap / (quarterlyProfit * 4) : 0;
 
   // 判断状态
   const fdvMcapStatus = evaluateFdvMcap(fdvMcapRatio);
@@ -504,6 +641,8 @@ const calculateValuation = () => {
   const revenueGrowthStatus = evaluateRevenueGrowth(
     projectData.value.revenueGrowth
   );
+  const psMonthlyStatus = evaluatePSRatio(psMonthlyRatio, "monthly");
+  const psQuarterlyStatus = evaluatePSRatio(psQuarterlyRatio, "quarterly");
 
   // 综合评估
   const overallStatus = calculateOverallStatus({
@@ -512,6 +651,8 @@ const calculateValuation = () => {
     mcapRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
+    psMonthlyStatus,
+    psQuarterlyStatus,
   });
 
   const riskLevel = calculateRiskLevel({
@@ -520,6 +661,8 @@ const calculateValuation = () => {
     mcapRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
+    psMonthlyStatus,
+    psQuarterlyStatus,
   });
 
   const investmentAdvice = generateInvestmentAdvice(overallStatus);
@@ -530,11 +673,15 @@ const calculateValuation = () => {
     mcapRevenueRatio,
     fdvTvlRatio,
     revenueGrowth: projectData.value.revenueGrowth,
+    psMonthlyRatio,
+    psQuarterlyRatio,
     fdvMcapStatus,
     mcapTvlStatus,
     mcapRevenueStatus,
     fdvTvlStatus,
     revenueGrowthStatus,
+    psMonthlyStatus,
+    psQuarterlyStatus,
     overallStatus,
     riskLevel,
     investmentAdvice,
@@ -590,10 +737,26 @@ const evaluateRevenueGrowth = (growth: number) => {
   return "增长缓慢";
 };
 
+// P/S比率评估函数
+const evaluatePSRatio = (ratio: number, period: "monthly" | "quarterly") => {
+  if (ratio === 0) return "无数据";
+  
+  if (period === "monthly") {
+    if (ratio < 5) return "便宜";
+    if (ratio <= 15) return "合理";
+    return "偏贵";
+  } else {
+    // quarterly
+    if (ratio < 4) return "便宜";
+    if (ratio <= 10) return "合理";
+    return "偏贵";
+  }
+};
+
 // 综合状态计算
 const calculateOverallStatus = (statuses: Record<string, string>) => {
   const goodCount = Object.values(statuses).filter((status) =>
-    ["健康", "合理", "可能低估", "显著低估"].includes(status)
+    ["健康", "合理", "可能低估", "显著低估", "便宜"].includes(status)
   ).length;
 
   const cautionCount = Object.values(statuses).filter((status) =>
@@ -601,7 +764,7 @@ const calculateOverallStatus = (statuses: Record<string, string>) => {
   ).length;
 
   const riskCount = Object.values(statuses).filter((status) =>
-    ["高风险", "高估", "高估警示", "极端高估", "极高风险"].includes(status)
+    ["高风险", "高估", "高估警示", "极端高估", "极高风险", "偏贵"].includes(status)
   ).length;
 
   if (riskCount > cautionCount + goodCount) return "高估";
@@ -613,7 +776,7 @@ const calculateOverallStatus = (statuses: Record<string, string>) => {
 // 风险等级计算
 const calculateRiskLevel = (statuses: Record<string, string>) => {
   const riskCount = Object.values(statuses).filter((status) =>
-    ["高风险", "高估", "高估警示", "极端高估", "极高风险"].includes(status)
+    ["高风险", "高估", "高估警示", "极端高估", "极高风险", "偏贵"].includes(status)
   ).length;
 
   if (riskCount >= 3) return "高";
@@ -632,7 +795,7 @@ const generateInvestmentAdvice = (overallStatus: string) => {
 
 // 状态样式类
 const getStatusClass = (status: string) => {
-  if (["健康", "合理", "可能低估", "显著低估"].includes(status))
+  if (["健康", "合理", "可能低估", "显著低估", "便宜"].includes(status))
     return "status-good";
   if (["可接受", "偏高", "需谨慎"].includes(status)) return "status-caution";
   return "status-risk";
