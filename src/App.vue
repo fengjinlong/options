@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { el } from "element-plus/es/locales.mjs";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -32,6 +33,10 @@ const router = useRouter();
         >
         <el-button type="success" @click="router.push('/sjfx2')"
           >加密项目估值分析2</el-button
+        >
+        <!-- 看涨期权评估 -->
+        <el-button type="success" @click="router.push('/long-call-price')"
+          >看涨期权价格评估</el-button
         >
       </div>
     </header>
