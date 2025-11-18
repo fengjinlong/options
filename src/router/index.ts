@@ -9,6 +9,7 @@ import OptionsCalculator from "../views/OptionsCalculator.vue";
 import Sjfx from "../views/Sjfx.vue";
 import Sjfx2 from "../views/Sjfx2.0.vue";
 import LongCallPrice from "../views/longCallPrice.vue";
+import Check from "../views/Check.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -63,6 +64,11 @@ const router = createRouter({
       path: "/long-call-price",
       name: "long-call-price",
       component: LongCallPrice,
+    },
+    {
+      path: "/check",
+      name: "check",
+      component: Check,
     },
   ],
 });

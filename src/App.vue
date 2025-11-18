@@ -37,6 +37,10 @@ const router = useRouter();
         <el-button type="success" @click="router.push('/long-call-price')"
           >看涨期权价格评估</el-button
         >
+        <!-- 交易所资金流向分析 -->
+        <el-button type="warning" @click="router.push('/check')"
+          >交易所资金流向分析</el-button
+        >
       </div>
     </header>
     <router-view></router-view>
