@@ -22,7 +22,8 @@ const router = useRouter();
         <!-- 交易所资金流向分析 -->
         <el-button type="warning" @click="router.push('/check')">交易所资金流向分析</el-button>
         <!-- 美股PE估值分析 -->
-        <el-button type="success" @click="router.push('/us-pe-valuation')">美股PE估值分析</el-button>
+        <!-- <el-button type="success" @click="router.push('/us-pe-valuation')">PE估值分析</el-button> -->
+        <el-button type="success" @click="router.push('/pe')">PE估值分析</el-button>
       </div>
     </header>
     <router-view></router-view>

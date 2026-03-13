@@ -11,6 +11,7 @@ import Sjfx2 from "../views/Sjfx2.0.vue";
 import LongCallPrice from "../views/longCallPrice.vue";
 import Check from "../views/Check.vue";
 import UsPeValuation from "../views/UsPeValuation.vue";
+import Pe from "../views/Pe.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -75,6 +76,11 @@ const router = createRouter({
       path: "/us-pe-valuation",
       name: "us-pe-valuation",
       component: UsPeValuation,
+    },
+    {
+      path: "/pe",
+      name: "pe",
+      component: Pe,
     },
   ],
 });
