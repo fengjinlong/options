@@ -34,7 +34,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="js">
 import { ref, onMounted, onUnmounted, shallowRef } from 'vue'
 import axios from 'axios'
 import * as echarts from 'echarts'
