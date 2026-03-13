@@ -9,7 +9,7 @@
 
       <el-form :inline="true">
         <el-form-item label="股票代码">
-          <el-select v-model="symbol" filterable allow-create default-first-option clearable placeholder="请输入或选择股票代码"
+          <el-select v-model="symbol" filterable allow-create placeholder="请输入或选择股票代码 (如 NVDA)"
             style="width: 200px">
             <el-option v-for="item in symbolOptions" :key="item" :label="item" :value="item" />
           </el-select>

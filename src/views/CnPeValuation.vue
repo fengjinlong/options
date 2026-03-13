@@ -9,8 +9,8 @@
 
       <el-form :inline="true">
         <el-form-item label="股票代码">
-          <el-select v-model="symbol" filterable allow-create default-first-option clearable placeholder="如 sh.600519"
-            style="width: 200px">
+          <el-select v-model="symbol" filterable allow-create placeholder="请输入或选择股票代码 (如 sh.600519)"
+            style="width: 220px">
             <el-option v-for="item in symbolOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
@@ -61,6 +61,13 @@ const chartInstance = shallowRef(null)
 
 const fetchData = async () => {
   if (!symbol.value) return ElMessage.warning('请输入股票代码')
+
+  // 简单校验格式
+  const symbolVal = symbol.value.trim()
+  if (!/^(sh|sz)\.\d{6}$/.test(symbolVal)) {
+    ElMessage.warning('股票代码格式错误，请使用如 sh.600519 或 sz.000001 格式')
+    return
+  }
 
   loading.value = true
   try {
