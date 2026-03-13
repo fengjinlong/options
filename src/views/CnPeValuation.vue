@@ -23,8 +23,6 @@
       </el-form>
 
       <div v-if="apiData" class="summary-cards">
-        <el-statistic title="股票名称" :value="apiData.stock_name" />
-        <el-statistic title="当前股价" :value="apiData.current_price" :precision="2" />
         <el-statistic title="当前 PE(TTM)" :value="apiData.current_pe" :precision="2" />
         <el-statistic title="历史分位" :value="apiData.percentile" :precision="2">
           <template #suffix>%</template>
@@ -171,32 +169,21 @@ onUnmounted(() => {
 <style scoped>
 .pe-analyzer {
   max-width: 1000px;
-  margin: 20px auto;
+  margin: 2px auto;
 }
 
 .summary-cards {
   display: flex;
   gap: 40px;
   justify-content: center;
-  margin: 20px 0;
+  margin: 5px 0;
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
   border: 1px solid #ebeef5;
 }
 
-/* 覆盖 Element Plus 统计组件的样式，让文字更大更显眼 */
-:deep(.el-statistic__title) {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-}
 
-:deep(.el-statistic__content) {
-  font-size: 24px;
-  font-weight: bold;
-  color: #303133;
-}
 
 .chart-container {
   width: 100%;

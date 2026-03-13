@@ -9,8 +9,7 @@
 
       <el-form :inline="true">
         <el-form-item label="股票代码">
-          <el-select v-model="symbol" filterable allow-create placeholder="请输入或选择股票代码 (如 NVDA)"
-            style="width: 200px">
+          <el-select v-model="symbol" filterable allow-create placeholder="请输入或选择股票代码 (如 NVDA)" style="width: 200px">
             <el-option v-for="item in symbolOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </el-form-item>
@@ -119,16 +118,16 @@ onUnmounted(() => {
 <style scoped>
 .pe-analyzer {
   max-width: 1000px;
-  margin: 20px auto;
+  margin: 2px auto;
 }
 
 .summary-cards {
   display: flex;
   gap: 40px;
   justify-content: center;
-  margin: 20px 0;
+  margin: 5px 0;
   background-color: #f8f9fa;
-  padding: 20px;
+  padding: 10px;
   border-radius: 8px;
 }
 
