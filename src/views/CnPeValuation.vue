@@ -112,10 +112,19 @@ const renderChart = (data) => {
         itemStyle: { color: '#1f77b4' },
         showSymbol: false,
         // 新增：自动标注最高点和最低点的气泡
+        // 优化后的极值标注（仅文字，无气泡图标）
         markPoint: {
+          symbol: 'none',
+          label: {
+            show: true,
+            fontWeight: 'bold',
+            formatter: function (param) {
+              return `${param.name}: ${param.value.toFixed(2)}`;
+            }
+          },
           data: [
-            { type: 'max', name: '历史最高', itemStyle: { color: '#d62728' } },
-            { type: 'min', name: '历史最低', itemStyle: { color: '#2ca02c' } }
+            { type: 'max', name: '最高', label: { position: 'top', color: '#d62728' } },
+            { type: 'min', name: '最低', label: { position: 'bottom', color: '#2ca02c' } }
           ]
         },
         markLine: {
