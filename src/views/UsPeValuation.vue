@@ -55,7 +55,7 @@ const fetchData = async () => {
   loading.value = true
   try {
     // 直接呼叫 Python 启动的本地 API
-    const response = await axios.get(`/api/analyze`, {
+    const response = await axios.get(`http://117.72.63.11:8000/api/analyze`, {
       params: { symbol: symbol.value, years: years.value }
     })
 
