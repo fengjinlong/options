@@ -45,6 +45,22 @@
             </div>
 
             <div class="form-item">
+              <label>增长率 (g₂) 6-10年</label>
+              <div class="input-with-unit">
+                <input v-model.number="params.terminalGrowthRate2" type="number" step="0.1" class="form-input" />
+                <span class="unit-text">%</span>
+              </div>
+            </div>
+
+            <div class="form-item">
+              <label>永续增长率 (g∞)</label>
+              <div class="input-with-unit">
+                <input v-model.number="params.terminalGrowthRate" type="number" step="0.1" min="0" max="20" class="form-input" />
+                <span class="unit-text">%</span>
+              </div>
+            </div>
+
+            <div class="form-item">
               <label>现金 (X)</label>
               <div class="input-with-unit">
                 <input v-model.number="params.cash" type="number" step="0.01" min="0" class="form-input" />
@@ -105,6 +121,12 @@
                 <span class="result-label">股权价值</span>
                 <span class="result-value">{{ formatMoney(equityValue5Year) }}</span>
               </div>
+              <div class="result-row result-meta">
+                <span>显式期现值</span><span>{{ formatMoney(ev5Explicit) }}</span>
+              </div>
+              <div class="result-row result-meta">
+                <span>终值现值</span><span>{{ formatMoney(pvTerminal5) }}</span>
+              </div>
               <div class="result-row verdict">
                 <span class="result-badge" :class="isUndervalued5 ? 'undervalued' : 'overvalued'">
                   {{ isUndervalued5 ? '低估' : '高估' }} {{ Math.abs(valuationDiff5 * 100).toFixed(1) }}%
@@ -126,6 +148,12 @@
               <div class="result-row">
                 <span class="result-label">股权价值</span>
                 <span class="result-value">{{ formatMoney(equityValue10Year) }}</span>
+              </div>
+              <div class="result-row result-meta">
+                <span>显式期现值</span><span>{{ formatMoney(ev10Explicit) }}</span>
+              </div>
+              <div class="result-row result-meta">
+                <span>终值现值</span><span>{{ formatMoney(pvTerminal10) }}</span>
               </div>
               <div class="result-row verdict">
                 <span class="result-badge" :class="isUndervalued10 ? 'undervalued' : 'overvalued'">
@@ -182,7 +210,7 @@
               <td>第 {{ year }} 年</td>
               <td>
                 <span v-if="year <= 5">{{ params.growthRate }}%</span>
-                <span v-else class="terminal-rate">{{ (params.growthRate / 2).toFixed(1) }}%</span>
+                <span v-else class="terminal-rate">{{ params.terminalGrowthRate2 }}%</span>
               </td>
               <td class="money-cell">{{ formatMoney(cashflows[year - 1]) }}</td>
               <td>{{ discountFactors[year - 1]?.toFixed(4) }}</td>
@@ -203,14 +231,20 @@
         <div class="formula-card">
           <h4>现金流预测</h4>
           <p>1-5年: FCF × (1 + g)<sup>n</sup></p>
-          <p>6-10年: FCF × (1 + g)<sup>5</sup> × (1 + g/2)<sup>(n-5)</sup></p>
+          <p>6-10年: FCF × (1 + g)<sup>5</sup> × (1 + g₂)<sup>(n-5)</sup></p>
         </div>
         <div class="formula-card">
           <h4>折现计算</h4>
           <p>折现系数 = 1 / (1 + r)<sup>n</sup></p>
         </div>
         <div class="formula-card">
+          <h4>终值（Gordon）</h4>
+          <p>TV<sub>n</sub> = FCF<sub>n+1</sub> / (r − g∞)，FCF<sub>n+1</sub> = 第 n 年 FCF × (1 + g∞)</p>
+          <p>终值现值 = TV<sub>n</sub> / (1 + r)<sup>n</sup>（须 r &gt; g∞）</p>
+        </div>
+        <div class="formula-card">
           <h4>股权价值</h4>
+          <p>EV = 显式期折现现金流之和 + 终值现值</p>
           <p>股权价值 = EV + 现金 - 负债</p>
           <p>每股价值 = 股权价值 / 股票总数</p>
         </div>
@@ -224,16 +258,20 @@ import { ref, reactive } from "vue";
 
 // 输入参数
 const params = reactive({
-  currentPrice: 150,
-  fcf: 100,
+  currentPrice: 176,
+  fcf: 96600,
   fcfUnit: 100000000,
-  discountRate: 10,
-  growthRate: 15,
-  cash: 50,
+  discountRate: 17,
+  growthRate: 38.8,
+  /** 增长率 g₂，用于 6-10 年现金流（默认 g/2） */
+  terminalGrowthRate2: 19.4,
+  /** 永续增长率 g∞，用于 Gordon 终值（通常 2%～4%） */
+  terminalGrowthRate: 3,
+  cash: 62500,
   cashUnit: 100000000,
-  debt: 30,
+  debt: 49500,
   debtUnit: 100000000,
-  shares: 100,
+  shares: 23300,
   sharesUnit: 100000000,
 });
 
@@ -244,6 +282,12 @@ const discountedCashflows = ref<number[]>([]);
 const cumulativeDCF = ref<number[]>([]);
 const ev5Year = ref(0);
 const ev10Year = ref(0);
+/** 显式预测期折现现金流合计（不含终值） */
+const ev5Explicit = ref(0);
+const ev10Explicit = ref(0);
+/** Gordon 终值折现到当前 */
+const pvTerminal5 = ref(0);
+const pvTerminal10 = ref(0);
 const equityValue5Year = ref(0);
 const equityValue10Year = ref(0);
 const pricePerShare5Year = ref(0);
@@ -263,7 +307,7 @@ const calculate = () => {
   const actualSharesVal = params.shares * params.sharesUnit;
 
   const g = params.growthRate / 100;
-  const g2 = g / 2;
+  const g2 = params.terminalGrowthRate2 / 100;
 
   // 计算现金流
   cashflows.value = [];
@@ -296,9 +340,29 @@ const calculate = () => {
     cumulativeDCF.value.push(sum);
   }
 
-  // 计算企业价值
-  ev5Year.value = discountedCashflows.value.slice(0, 5).reduce((s, v) => s + v, 0);
-  ev10Year.value = discountedCashflows.value.reduce((s, v) => s + v, 0);
+  // 显式期企业价值（折现现金流之和）
+  ev5Explicit.value = discountedCashflows.value.slice(0, 5).reduce((s, v) => s + v, 0);
+  ev10Explicit.value = discountedCashflows.value.reduce((s, v) => s + v, 0);
+
+  const gInf = params.terminalGrowthRate / 100;
+  // Gordon 终值：须 r > g∞
+  if (r > gInf) {
+    const fcfYear5 = cashflows.value[4];
+    const fcfYear6 = fcfYear5 * (1 + gInf);
+    const tv5 = fcfYear6 / (r - gInf);
+    pvTerminal5.value = tv5 / Math.pow(1 + r, 5);
+
+    const fcfYear10 = cashflows.value[9];
+    const fcfYear11 = fcfYear10 * (1 + gInf);
+    const tv10 = fcfYear11 / (r - gInf);
+    pvTerminal10.value = tv10 / Math.pow(1 + r, 10);
+  } else {
+    pvTerminal5.value = 0;
+    pvTerminal10.value = 0;
+  }
+
+  ev5Year.value = ev5Explicit.value + pvTerminal5.value;
+  ev10Year.value = ev10Explicit.value + pvTerminal10.value;
 
   // 计算股权价值
   equityValue5Year.value = ev5Year.value + actualCashVal - actualDebtVal;
@@ -512,6 +576,12 @@ const formatMoney = (value: number): string => {
   justify-content: space-between;
   align-items: center;
   padding: 4px 0;
+}
+
+.result-row.result-meta {
+  font-size: 0.72rem;
+  color: #95a5a6;
+  padding: 2px 0;
 }
 
 .result-label {
