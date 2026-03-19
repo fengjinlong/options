@@ -23,7 +23,8 @@
                 <input v-model.number="params.fcf" type="number" step="0.01" min="0" class="form-input" />
                 <div class="unit-selector">
                   <button :class="{ active: params.fcfUnit === 1 }" @click="params.fcfUnit = 1" type="button">元</button>
-                  <button :class="{ active: params.fcfUnit === 100000000 }" @click="params.fcfUnit = 100000000" type="button">亿</button>
+                  <button :class="{ active: params.fcfUnit === 100000000 }" @click="params.fcfUnit = 100000000"
+                    type="button">亿</button>
                 </div>
               </div>
             </div>
@@ -31,7 +32,8 @@
             <div class="form-item">
               <label>折现率 (r)</label>
               <div class="input-with-unit">
-                <input v-model.number="params.discountRate" type="number" step="0.1" min="0" max="100" class="form-input" />
+                <input v-model.number="params.discountRate" type="number" step="0.1" min="0" max="100"
+                  class="form-input" />
                 <span class="unit-text">%</span>
               </div>
             </div>
@@ -55,7 +57,8 @@
             <div class="form-item">
               <label>永续增长率 (g∞)</label>
               <div class="input-with-unit">
-                <input v-model.number="params.terminalGrowthRate" type="number" step="0.1" min="0" max="20" class="form-input" />
+                <input v-model.number="params.terminalGrowthRate" type="number" step="0.1" min="0" max="20"
+                  class="form-input" />
                 <span class="unit-text">%</span>
               </div>
             </div>
@@ -65,8 +68,10 @@
               <div class="input-with-unit">
                 <input v-model.number="params.cash" type="number" step="0.01" min="0" class="form-input" />
                 <div class="unit-selector">
-                  <button :class="{ active: params.cashUnit === 1 }" @click="params.cashUnit = 1" type="button">元</button>
-                  <button :class="{ active: params.cashUnit === 100000000 }" @click="params.cashUnit = 100000000" type="button">亿</button>
+                  <button :class="{ active: params.cashUnit === 1 }" @click="params.cashUnit = 1"
+                    type="button">元</button>
+                  <button :class="{ active: params.cashUnit === 100000000 }" @click="params.cashUnit = 100000000"
+                    type="button">亿</button>
                 </div>
               </div>
             </div>
@@ -76,8 +81,10 @@
               <div class="input-with-unit">
                 <input v-model.number="params.debt" type="number" step="0.01" min="0" class="form-input" />
                 <div class="unit-selector">
-                  <button :class="{ active: params.debtUnit === 1 }" @click="params.debtUnit = 1" type="button">元</button>
-                  <button :class="{ active: params.debtUnit === 100000000 }" @click="params.debtUnit = 100000000" type="button">亿</button>
+                  <button :class="{ active: params.debtUnit === 1 }" @click="params.debtUnit = 1"
+                    type="button">元</button>
+                  <button :class="{ active: params.debtUnit === 100000000 }" @click="params.debtUnit = 100000000"
+                    type="button">亿</button>
                 </div>
               </div>
             </div>
@@ -87,8 +94,10 @@
               <div class="input-with-unit">
                 <input v-model.number="params.shares" type="number" step="1" min="0" class="form-input" />
                 <div class="unit-selector">
-                  <button :class="{ active: params.sharesUnit === 1 }" @click="params.sharesUnit = 1" type="button">股</button>
-                  <button :class="{ active: params.sharesUnit === 100000000 }" @click="params.sharesUnit = 100000000" type="button">亿股</button>
+                  <button :class="{ active: params.sharesUnit === 1 }" @click="params.sharesUnit = 1"
+                    type="button">股</button>
+                  <button :class="{ active: params.sharesUnit === 100000000 }" @click="params.sharesUnit = 100000000"
+                    type="button">亿股</button>
                 </div>
               </div>
             </div>
@@ -183,7 +192,8 @@
             </div>
           </div>
           <div class="final-verdict">
-            <span class="verdict-badge" :class="finalVerdict === '低估' ? 'undervalued' : finalVerdict === '高估' ? 'overvalued' : 'fair'">
+            <span class="verdict-badge"
+              :class="finalVerdict === '低估' ? 'undervalued' : finalVerdict === '高估' ? 'overvalued' : 'fair'">
               {{ finalVerdict }}
             </span>
             <span class="verdict-hint">{{ finalVerdictHint }}</span>
@@ -351,7 +361,7 @@ const params = reactive({
   /** 增长率 g₂，用于 6-10 年现金流（默认 g/2） */
   terminalGrowthRate2: 19.4,
   /** 永续增长率 g∞，用于 Gordon 终值（通常 2%～4%） */
-  terminalGrowthRate: 3,
+  terminalGrowthRate: 2.5,
   cash: 62500,
   cashUnit: 100000000,
   debt: 49500,
@@ -627,9 +637,19 @@ const formatMoney = (value: number): string => {
   transition: opacity 0.2s;
 }
 
-.action-btn:hover { opacity: 0.8; }
-.action-btn.save { background: #27ae60; color: white; }
-.action-btn.view { background: #3498db; color: white; }
+.action-btn:hover {
+  opacity: 0.8;
+}
+
+.action-btn.save {
+  background: #27ae60;
+  color: white;
+}
+
+.action-btn.view {
+  background: #3498db;
+  color: white;
+}
 
 /* 输入区域 */
 .input-section {
@@ -849,9 +869,20 @@ const formatMoney = (value: number): string => {
   font-size: 0.85rem;
 }
 
-.verdict-badge.undervalued { background: #d4edda; color: #155724; }
-.verdict-badge.overvalued { background: #f8d7da; color: #721c24; }
-.verdict-badge.fair { background: #fff3cd; color: #856404; }
+.verdict-badge.undervalued {
+  background: #d4edda;
+  color: #155724;
+}
+
+.verdict-badge.overvalued {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.verdict-badge.fair {
+  background: #fff3cd;
+  color: #856404;
+}
 
 .verdict-hint {
   font-size: 0.8rem;
@@ -902,8 +933,14 @@ const formatMoney = (value: number): string => {
   font-family: "SF Mono", Monaco, monospace;
 }
 
-.money-cell.discounted { color: #e74c3c; }
-.money-cell.cumulative { color: #27ae60; font-weight: 600; }
+.money-cell.discounted {
+  color: #e74c3c;
+}
+
+.money-cell.cumulative {
+  color: #27ae60;
+  font-weight: 600;
+}
 
 /* 公式说明 */
 .formula-section {
@@ -1079,8 +1116,15 @@ const formatMoney = (value: number): string => {
   color: #667eea;
 }
 
-.history-table .green { color: #27ae60; font-weight: 600; }
-.history-table .red { color: #e74c3c; font-weight: 600; }
+.history-table .green {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.history-table .red {
+  color: #e74c3c;
+  font-weight: 600;
+}
 
 .del-btn {
   padding: 3px 10px;
