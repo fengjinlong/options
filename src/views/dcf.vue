@@ -104,6 +104,10 @@
       <div class="results-section">
         <div class="section-title">
           <h2>💰 估值结果</h2>
+          <div class="action-buttons">
+            <button class="action-btn save" @click="openSaveModal" type="button">💾 保存</button>
+            <button class="action-btn view" @click="openHistoryModal" type="button">📋 记录</button>
+          </div>
         </div>
 
         <div class="results-grid">
@@ -251,6 +255,87 @@
       </div>
     </div>
   </div>
+
+  <!-- 保存 Modal -->
+  <div v-if="showSaveModal" class="modal-overlay" @click.self="showSaveModal = false">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>💾 保存估值记录</h3>
+        <button class="modal-close" @click="showSaveModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-form">
+          <div class="modal-item">
+            <label>标的名称</label>
+            <input v-model="saveForm.name" type="text" placeholder="如：贵州茅台" class="modal-input" />
+          </div>
+          <div class="modal-item">
+            <label>日期</label>
+            <input v-model="saveForm.date" type="date" class="modal-input" />
+          </div>
+          <div class="modal-item">
+            <label>当前价格 (元)</label>
+            <input v-model.number="saveForm.currentPrice" type="number" step="0.01" class="modal-input" />
+          </div>
+          <div class="modal-item">
+            <label>5年 DCF 每股价值 (元)</label>
+            <input v-model.number="saveForm.dcf5Year" type="number" step="0.01" class="modal-input" />
+          </div>
+          <div class="modal-item">
+            <label>10年 DCF 每股价值 (元)</label>
+            <input v-model.number="saveForm.dcf10Year" type="number" step="0.01" class="modal-input" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn cancel" @click="showSaveModal = false">取消</button>
+        <button class="modal-btn confirm" @click="handleSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查看历史 Modal -->
+  <div v-if="showHistoryModal" class="modal-overlay" @click.self="showHistoryModal = false">
+    <div class="modal-box modal-history">
+      <div class="modal-header">
+        <h3>📋 估值记录</h3>
+        <button class="modal-close" @click="showHistoryModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="historyRecords.length === 0" class="empty-tip">
+          暂无保存记录
+        </div>
+        <table v-else class="history-table">
+          <thead>
+            <tr>
+              <th>标的名称</th>
+              <th>日期</th>
+              <th>当前价</th>
+              <th>5年 DCF</th>
+              <th>10年 DCF</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(record, idx) in historyRecords" :key="record.id">
+              <td class="name-cell">{{ record.name }}</td>
+              <td>{{ record.date }}</td>
+              <td>{{ record.currentPrice?.toFixed(2) }} 元</td>
+              <td :class="record.dcf5Year > record.currentPrice ? 'green' : 'red'">
+                {{ record.dcf5Year?.toFixed(2) }} 元
+              </td>
+              <td :class="record.dcf10Year > record.currentPrice ? 'green' : 'red'">
+                {{ record.dcf10Year?.toFixed(2) }} 元
+              </td>
+              <td>
+                <button class="del-btn" @click="handleDelete(idx)" type="button">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -298,6 +383,84 @@ const isUndervalued10 = ref(true);
 const valuationDiff10 = ref(0);
 const finalVerdict = ref('合理');
 const finalVerdictHint = ref('当前价格接近内在价值，可以考虑持有');
+
+/* ---------- 保存 / 历史记录逻辑 ---------- */
+const STORAGE_KEY = 'dcf_records';
+
+interface Record {
+  id: number;
+  name: string;
+  date: string;
+  currentPrice: number;
+  dcf5Year: number;
+  dcf10Year: number;
+}
+
+const showSaveModal = ref(false);
+const showHistoryModal = ref(false);
+const historyRecords = ref<Record[]>([]);
+
+const saveForm = reactive({
+  name: '',
+  date: new Date().toISOString().split('T')[0],
+  currentPrice: 0,
+  dcf5Year: 0,
+  dcf10Year: 0,
+});
+
+const loadRecords = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    historyRecords.value = raw ? JSON.parse(raw) : [];
+  } catch {
+    historyRecords.value = [];
+  }
+};
+
+const persistRecords = () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(historyRecords.value));
+};
+
+const openSaveModal = () => {
+  saveForm.name = '';
+  saveForm.date = new Date().toISOString().split('T')[0];
+  saveForm.currentPrice = params.currentPrice;
+  saveForm.dcf5Year = pricePerShare5Year.value;
+  saveForm.dcf10Year = pricePerShare10Year.value;
+  showSaveModal.value = true;
+};
+
+const handleSave = () => {
+  if (!saveForm.name.trim()) {
+    alert('请输入标的名称');
+    return;
+  }
+  const record: Record = {
+    id: Date.now(),
+    name: saveForm.name.trim(),
+    date: saveForm.date,
+    currentPrice: saveForm.currentPrice,
+    dcf5Year: saveForm.dcf5Year,
+    dcf10Year: saveForm.dcf10Year,
+  };
+  historyRecords.value.unshift(record);
+  persistRecords();
+  showSaveModal.value = false;
+};
+
+const openHistoryModal = () => {
+  loadRecords();
+  showHistoryModal.value = true;
+};
+
+const handleDelete = (idx: number) => {
+  if (confirm('确定删除该记录？')) {
+    historyRecords.value.splice(idx, 1);
+    persistRecords();
+  }
+};
+
+loadRecords();
 
 // 执行计算
 const calculate = () => {
@@ -437,6 +600,9 @@ const formatMoney = (value: number): string => {
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
@@ -445,6 +611,25 @@ const formatMoney = (value: number): string => {
   font-size: 1.1rem;
   font-weight: 600;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.action-btn:hover { opacity: 0.8; }
+.action-btn.save { background: #27ae60; color: white; }
+.action-btn.view { background: #3498db; color: white; }
 
 /* 输入区域 */
 .input-section {
@@ -750,5 +935,164 @@ const formatMoney = (value: number): string => {
   color: #2c3e50;
   margin: 4px 0;
   font-family: "SF Mono", Monaco, monospace;
+}
+
+/* Modal 通用 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 10px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-history {
+  width: 700px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-item label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.modal-input {
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid #eee;
+}
+
+.modal-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-btn.cancel {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #aaa;
+  padding: 30px 0;
+  font-size: 0.95rem;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.history-table th {
+  background: #f8f9fa;
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 2px solid #eee;
+}
+
+.history-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #2c3e50;
+}
+
+.history-table .name-cell {
+  font-weight: 600;
+  color: #667eea;
+}
+
+.history-table .green { color: #27ae60; font-weight: 600; }
+.history-table .red { color: #e74c3c; font-weight: 600; }
+
+.del-btn {
+  padding: 3px 10px;
+  background: #f8d7da;
+  color: #721c24;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.del-btn:hover {
+  background: #f5c6cb;
 }
 </style>
