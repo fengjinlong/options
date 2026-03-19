@@ -24,6 +24,8 @@ const router = useRouter();
         <!-- 美股PE估值分析 -->
         <!-- <el-button type="success" @click="router.push('/us-pe-valuation')">PE估值分析</el-button> -->
         <el-button type="success" @click="router.push('/pe')">PE估值分析</el-button>
+        <!-- dcf 估值分析 -->
+        <el-button type="success" @click="router.push('/dcf')">DCF估值分析</el-button>
       </div>
     </header>
     <router-view></router-view>

@@ -12,6 +12,7 @@ import LongCallPrice from "../views/longCallPrice.vue";
 import Check from "../views/Check.vue";
 import UsPeValuation from "../views/UsPeValuation.vue";
 import Pe from "../views/Pe.vue";
+import Dcf from "../views/dcf.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -81,6 +82,11 @@ const router = createRouter({
       path: "/pe",
       name: "pe",
       component: Pe,
+    },
+    {
+      path: "/dcf",
+      name: "dcf",
+      component: Dcf,
     },
   ],
 });
