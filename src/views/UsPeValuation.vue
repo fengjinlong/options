@@ -40,7 +40,7 @@ import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 
 const symbol = ref('NVDA')
-const symbolOptions = ['TSLA', 'KO', 'AAPL', 'NVDA']
+const symbolOptions = ['TSLA', 'KO', 'AAPL', 'NVDA', 'GOOGL', 'MSTR', 'ICE']
 const years = ref(3)
 const loading = ref(false)
 const apiData = ref(null)
