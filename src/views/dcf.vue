@@ -142,7 +142,7 @@
               </div>
               <div class="result-row verdict">
                 <span class="result-badge" :class="isUndervalued5 ? 'undervalued' : 'overvalued'">
-                  {{ isUndervalued5 ? '低估' : '高估' }} {{ Math.abs(valuationDiff5 * 100).toFixed(1) }}%
+                  {{ isUndervalued5 ? '低估' : '高估' }} {{ Math.abs((valuationDiff5 || 0) * 100).toFixed(1) }}%
                 </span>
               </div>
             </div>
@@ -170,7 +170,7 @@
               </div>
               <div class="result-row verdict">
                 <span class="result-badge" :class="isUndervalued10 ? 'undervalued' : 'overvalued'">
-                  {{ isUndervalued10 ? '低估' : '高估' }} {{ Math.abs(valuationDiff10 * 100).toFixed(1) }}%
+                  {{ isUndervalued10 ? '低估' : '高估' }} {{ Math.abs((valuationDiff10 || 0) * 100).toFixed(1) }}%
                 </span>
               </div>
             </div>
@@ -547,14 +547,14 @@ const calculate = () => {
 
   // 估值判断
   isUndervalued5.value = pricePerShare5Year.value > params.currentPrice;
-  valuationDiff5.value = params.currentPrice === 0 ? 0 : (pricePerShare5Year.value - params.currentPrice) / params.currentPrice;
+  valuationDiff5.value = !params.currentPrice ? 0 : (pricePerShare5Year.value - params.currentPrice) / params.currentPrice;
   isUndervalued10.value = pricePerShare10Year.value > params.currentPrice;
-  valuationDiff10.value = params.currentPrice === 0 ? 0 : (pricePerShare10Year.value - params.currentPrice) / params.currentPrice;
+  valuationDiff10.value = !params.currentPrice ? 0 : (pricePerShare10Year.value - params.currentPrice) / params.currentPrice;
 
   // 最终判断
   const avgPrice = (pricePerShare5Year.value + pricePerShare10Year.value) / 2;
-  const diff = avgPrice - params.currentPrice;
-  if (params.currentPrice === 0) {
+  const diff = avgPrice - (params.currentPrice || 0);
+  if (!params.currentPrice) {
     finalVerdict.value = '数据不足';
     finalVerdictHint.value = '请输入当前价格';
   } else {
@@ -576,13 +576,19 @@ const calculate = () => {
 calculate();
 
 // 格式化金额
-const formatMoney = (value: number): string => {
-  if (Math.abs(value) >= 100000000) {
-    return (value / 100000000).toFixed(2) + '亿';
-  } else if (Math.abs(value) >= 10000) {
-    return (value / 10000).toFixed(2) + '万';
+const formatMoney = (value: number | string | null | undefined): string => {
+  // 先转换为数字
+  const numValue = typeof value === 'number' ? value : Number(value);
+  // 检查是否为有效数字
+  if (value == null || value === '' || isNaN(numValue) || !isFinite(numValue)) {
+    return '—';
+  }
+  if (Math.abs(numValue) >= 100000000) {
+    return (numValue / 100000000).toFixed(2) + '亿';
+  } else if (Math.abs(numValue) >= 10000) {
+    return (numValue / 10000).toFixed(2) + '万';
   } else {
-    return value.toFixed(2);
+    return numValue.toFixed(2);
   }
 };
 </script>
