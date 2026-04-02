@@ -1,7 +1,8 @@
 <template>
   <div style="display: flex;">
-    <CnPeValuation />
-    <UsPeValuation />
+
+    <CnPeValuation style="flex: 1;" />
+    <UsPeValuation style="flex: 1;" />
   </div>
 </template>
 

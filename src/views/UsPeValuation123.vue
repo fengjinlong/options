@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="js">
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted, shallowRef, watch, markRaw } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted, shallowRef, watch } from 'vue'
 import axios from 'axios'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
@@ -109,7 +109,7 @@ import epsJson from './eps.json'
 
 // ==================== 共享状态 ====================
 const symbol = ref('NVDA')
-const symbolOptions = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'KO', 'MSFT', 'AMZN']
+const symbolOptions = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'MSTR', 'KO', 'MSFT', 'AMZN']
 const epsData = ref([])
 
 // FMP API Key
@@ -218,15 +218,6 @@ function loadFromStorage() {
 }
 
 function onSymbolChange() {
-  const hasEpsData = loadFromStorage()
-  if (!hasEpsData) {
-    panel1.loading = false
-    panel2.loading = false
-    panel3.loading = false
-    ElMessage.warning(`暂无 ${symbol.value} 的 EPS 数据，请先在 eps.json 中添加`)
-    return
-  }
-
   panel1.data = []
   panel1.chartInstance?.dispose()
   panel1.chartInstance = null
@@ -236,6 +227,7 @@ function onSymbolChange() {
   panel3.data = []
   panel3.chartInstance?.dispose()
   panel3.chartInstance = null
+  loadFromStorage()
   autoFetchAll()
 }
 
@@ -366,7 +358,7 @@ function safeRenderChart(panel, chartRefEl, years) {
   if (!chartRefEl || !panel.data.length) return
 
   if (!panel.chartInstance) {
-    panel.chartInstance = markRaw(echarts.init(chartRefEl))
+    panel.chartInstance = echarts.init(chartRefEl)
   }
 
   const data = panel.data
