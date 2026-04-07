@@ -88,6 +88,13 @@ const router = createRouter({
       name: "dcf",
       component: Dcf,
     },
+    // dcf-maturity
+    {
+      path: "/dcf-maturity",
+      name: "dcf-maturity",
+      component: () => import("../views/DcfMaturity.vue"),
+    }
+
   ],
 });
 
