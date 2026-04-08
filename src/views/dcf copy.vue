@@ -5,7 +5,7 @@
       <!-- 左侧：参数输入 -->
       <div class="input-section">
         <div class="section-title">
-          <h2>📊 参数输入,高成长科技股,英伟达、特斯拉、拼多多</h2>
+          <h2>📊 参数输入</h2>
         </div>
         <div class="input-group">
           <div class="form-grid">
@@ -50,14 +50,6 @@
               <label>增长率 (g₂) 6-10年</label>
               <div class="input-with-unit">
                 <input v-model.number="params.terminalGrowthRate2" type="number" step="0.1" class="form-input" />
-                <span class="unit-text">%</span>
-              </div>
-            </div>
-
-            <div class="form-item">
-              <label>增长率 (g₃) 10-20年</label>
-              <div class="input-with-unit">
-                <input v-model.number="params.terminalGrowthRate3" type="number" step="0.1" class="form-input" />
                 <span class="unit-text">%</span>
               </div>
             </div>
@@ -183,34 +175,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 20年估值 -->
-          <div class="result-card">
-            <div class="card-header">
-              <h3>20年 DCF</h3>
-            </div>
-            <div class="card-body">
-              <div class="result-row">
-                <span class="result-label">每股价值</span>
-                <span class="result-value large">{{ formatMoney(pricePerShare20Year) }} 元</span>
-              </div>
-              <div class="result-row">
-                <span class="result-label">股权价值</span>
-                <span class="result-value">{{ formatMoney(equityValue20Year) }}</span>
-              </div>
-              <div class="result-row result-meta">
-                <span>显式期现值</span><span>{{ formatMoney(ev20Explicit) }}</span>
-              </div>
-              <div class="result-row result-meta">
-                <span>终值现值</span><span>{{ formatMoney(pvTerminal20) }}</span>
-              </div>
-              <div class="result-row verdict">
-                <span class="result-badge" :class="isUndervalued20 ? 'undervalued' : 'overvalued'">
-                  {{ isUndervalued20 ? '低估' : '高估' }} {{ Math.abs((valuationDiff20 || 0) * 100).toFixed(1) }}%
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 对比总结 -->
@@ -223,7 +187,7 @@
             <div class="summary-item">
               <span class="summary-label">内在价值区间</span>
               <span class="summary-value range">
-                {{ formatMoney(pricePerShare5Year) }} ~ {{ formatMoney(pricePerShare20Year) }} 元
+                {{ formatMoney(pricePerShare5Year) }} ~ {{ formatMoney(pricePerShare10Year) }} 元
               </span>
             </div>
           </div>
@@ -256,12 +220,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="year in 20" :key="year">
+            <tr v-for="year in 10" :key="year">
               <td>第 {{ year }} 年</td>
               <td>
                 <span v-if="year <= 5">{{ params.growthRate }}%</span>
-                <span v-else-if="year <= 10" class="terminal-rate">{{ params.terminalGrowthRate2 }}%</span>
-                <span v-else class="terminal-rate3">{{ params.terminalGrowthRate3 }}%</span>
+                <span v-else class="terminal-rate">{{ params.terminalGrowthRate2 }}%</span>
               </td>
               <td class="money-cell">{{ formatMoney(cashflows[year - 1]) }}</td>
               <td>{{ discountFactors[year - 1]?.toFixed(4) }}</td>
@@ -283,7 +246,6 @@
           <h4>现金流预测</h4>
           <p>1-5年: FCF × (1 + g)<sup>n</sup></p>
           <p>6-10年: FCF × (1 + g)<sup>5</sup> × (1 + g₂)<sup>(n-5)</sup></p>
-          <p>11-20年: FCF × (1 + g)<sup>5</sup> × (1 + g₂)<sup>5</sup> × (1 + g₃)<sup>(n-10)</sup></p>
         </div>
         <div class="formula-card">
           <h4>折现计算</h4>
@@ -333,10 +295,6 @@
             <label>10年 DCF 每股价值 (元)</label>
             <input v-model.number="saveForm.dcf10Year" type="number" step="0.01" class="modal-input" />
           </div>
-          <div class="modal-item">
-            <label>20年 DCF 每股价值 (元)</label>
-            <input v-model.number="saveForm.dcf20Year" type="number" step="0.01" class="modal-input" />
-          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -365,7 +323,6 @@
               <th>当前价</th>
               <th>5年 DCF</th>
               <th>10年 DCF</th>
-              <th>20年 DCF</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -380,9 +337,6 @@
               <td :class="record.dcf10Year > record.currentPrice ? 'green' : 'red'">
                 {{ record.dcf10Year?.toFixed(2) }} 元
               </td>
-              <td :class="record.dcf20Year > record.currentPrice ? 'green' : 'red'">
-                {{ record.dcf20Year?.toFixed(2) }} 元
-              </td>
               <td>
                 <button class="del-btn" @click="handleDelete(idx)" type="button">删除</button>
               </td>
@@ -395,7 +349,6 @@
 </template>
 
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
 import { ref, reactive } from "vue";
 
 // 输入参数
@@ -407,8 +360,6 @@ const params = reactive({
   growthRate: 38.8,
   /** 增长率 g₂，用于 6-10 年现金流（默认 g/2） */
   terminalGrowthRate2: 19.4,
-  /** 增长率 g₃，用于 10-20 年现金流（默认 g₂/2） */
-  terminalGrowthRate3: 9.7,
   /** 永续增长率 g∞，用于 Gordon 终值（通常 2%～4%） */
   terminalGrowthRate: 2.5,
   cash: 62500,
@@ -429,24 +380,17 @@ const ev10Year = ref(0);
 /** 显式预测期折现现金流合计（不含终值） */
 const ev5Explicit = ref(0);
 const ev10Explicit = ref(0);
-const ev20Explicit = ref(0);
-const ev20Year = ref(0);
 /** Gordon 终值折现到当前 */
 const pvTerminal5 = ref(0);
 const pvTerminal10 = ref(0);
-const pvTerminal20 = ref(0);
 const equityValue5Year = ref(0);
 const equityValue10Year = ref(0);
-const equityValue20Year = ref(0);
 const pricePerShare5Year = ref(0);
 const pricePerShare10Year = ref(0);
-const pricePerShare20Year = ref(0);
 const isUndervalued5 = ref(true);
 const valuationDiff5 = ref(0);
 const isUndervalued10 = ref(true);
 const valuationDiff10 = ref(0);
-const isUndervalued20 = ref(true);
-const valuationDiff20 = ref(0);
 const finalVerdict = ref('合理');
 const finalVerdictHint = ref('当前价格接近内在价值，可以考虑持有');
 
@@ -460,7 +404,6 @@ interface Record {
   currentPrice: number;
   dcf5Year: number;
   dcf10Year: number;
-  dcf20Year: number;
 }
 
 const showSaveModal = ref(false);
@@ -473,7 +416,6 @@ const saveForm = reactive({
   currentPrice: 0,
   dcf5Year: 0,
   dcf10Year: 0,
-  dcf20Year: 0,
 });
 
 const loadRecords = () => {
@@ -495,7 +437,6 @@ const openSaveModal = () => {
   saveForm.currentPrice = params.currentPrice;
   saveForm.dcf5Year = pricePerShare5Year.value;
   saveForm.dcf10Year = pricePerShare10Year.value;
-  saveForm.dcf20Year = pricePerShare20Year.value;
   showSaveModal.value = true;
 };
 
@@ -511,7 +452,6 @@ const handleSave = () => {
     currentPrice: saveForm.currentPrice,
     dcf5Year: saveForm.dcf5Year,
     dcf10Year: saveForm.dcf10Year,
-    dcf20Year: saveForm.dcf20Year,
   };
   historyRecords.value.unshift(record);
   persistRecords();
@@ -541,21 +481,16 @@ const calculate = () => {
 
   const g = params.growthRate / 100;
   const g2 = params.terminalGrowthRate2 / 100;
-  const g3 = params.terminalGrowthRate3 / 100;
 
   // 计算现金流
   cashflows.value = [];
-  for (let year = 1; year <= 20; year++) {
+  for (let year = 1; year <= 10; year++) {
     let fcfValue;
     if (year <= 5) {
       fcfValue = actualFCFVal * Math.pow(1 + g, year);
-    } else if (year <= 10) {
-      const fcf5 = actualFCFVal * Math.pow(1 + g, 5);
-      fcfValue = fcf5 * Math.pow(1 + g2, year - 5);
     } else {
       const fcf5 = actualFCFVal * Math.pow(1 + g, 5);
-      const fcf10 = fcf5 * Math.pow(1 + g2, 5);
-      fcfValue = fcf10 * Math.pow(1 + g3, year - 10);
+      fcfValue = fcf5 * Math.pow(1 + g2, year - 5);
     }
     cashflows.value.push(fcfValue);
   }
@@ -563,7 +498,7 @@ const calculate = () => {
   // 计算折现系数
   const r = params.discountRate / 100;
   discountFactors.value = [];
-  for (let year = 1; year <= 20; year++) {
+  for (let year = 1; year <= 10; year++) {
     discountFactors.value.push(1 / Math.pow(1 + r, year));
   }
 
@@ -573,15 +508,14 @@ const calculate = () => {
   // 计算累计折现现金流
   cumulativeDCF.value = [];
   let sum = 0;
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 10; i++) {
     sum += discountedCashflows.value[i];
     cumulativeDCF.value.push(sum);
   }
 
   // 显式期企业价值（折现现金流之和）
   ev5Explicit.value = discountedCashflows.value.slice(0, 5).reduce((s, v) => s + v, 0);
-  ev10Explicit.value = discountedCashflows.value.slice(0, 10).reduce((s, v) => s + v, 0);
-  ev20Explicit.value = discountedCashflows.value.reduce((s, v) => s + v, 0);
+  ev10Explicit.value = discountedCashflows.value.reduce((s, v) => s + v, 0);
 
   const gInf = params.terminalGrowthRate / 100;
   // Gordon 终值：须 r > g∞
@@ -595,41 +529,30 @@ const calculate = () => {
     const fcfYear11 = fcfYear10 * (1 + gInf);
     const tv10 = fcfYear11 / (r - gInf);
     pvTerminal10.value = tv10 / Math.pow(1 + r, 10);
-
-    const fcfYear20 = cashflows.value[19];
-    const fcfYear21 = fcfYear20 * (1 + gInf);
-    const tv20 = fcfYear21 / (r - gInf);
-    pvTerminal20.value = tv20 / Math.pow(1 + r, 20);
   } else {
     pvTerminal5.value = 0;
     pvTerminal10.value = 0;
-    pvTerminal20.value = 0;
   }
 
   ev5Year.value = ev5Explicit.value + pvTerminal5.value;
   ev10Year.value = ev10Explicit.value + pvTerminal10.value;
-  ev20Year.value = ev20Explicit.value + pvTerminal20.value;
 
   // 计算股权价值
   equityValue5Year.value = ev5Year.value + actualCashVal - actualDebtVal;
   equityValue10Year.value = ev10Year.value + actualCashVal - actualDebtVal;
-  equityValue20Year.value = ev20Year.value + actualCashVal - actualDebtVal;
 
   // 计算每股价格
   pricePerShare5Year.value = actualSharesVal === 0 ? 0 : equityValue5Year.value / actualSharesVal;
   pricePerShare10Year.value = actualSharesVal === 0 ? 0 : equityValue10Year.value / actualSharesVal;
-  pricePerShare20Year.value = actualSharesVal === 0 ? 0 : equityValue20Year.value / actualSharesVal;
 
   // 估值判断
   isUndervalued5.value = pricePerShare5Year.value > params.currentPrice;
   valuationDiff5.value = !params.currentPrice ? 0 : (pricePerShare5Year.value - params.currentPrice) / params.currentPrice;
   isUndervalued10.value = pricePerShare10Year.value > params.currentPrice;
   valuationDiff10.value = !params.currentPrice ? 0 : (pricePerShare10Year.value - params.currentPrice) / params.currentPrice;
-  isUndervalued20.value = pricePerShare20Year.value > params.currentPrice;
-  valuationDiff20.value = !params.currentPrice ? 0 : (pricePerShare20Year.value - params.currentPrice) / params.currentPrice;
 
-  // 最终判断（使用 5年、10年、20年 的平均值）
-  const avgPrice = (pricePerShare5Year.value + pricePerShare10Year.value + pricePerShare20Year.value) / 3;
+  // 最终判断
+  const avgPrice = (pricePerShare5Year.value + pricePerShare10Year.value) / 2;
   const diff = avgPrice - (params.currentPrice || 0);
   if (!params.currentPrice) {
     finalVerdict.value = '数据不足';
@@ -647,7 +570,6 @@ const calculate = () => {
       finalVerdictHint.value = '当前价格接近内在价值，可以考虑持有';
     }
   }
-  ElMessage.success('估值计算完成');
 };
 
 // 初始化时执行一次计算
@@ -842,7 +764,7 @@ const formatMoney = (value: number | string | null | undefined): string => {
 
 .results-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -1011,10 +933,6 @@ const formatMoney = (value: number | string | null | undefined): string => {
 
 .terminal-rate {
   color: #667eea;
-}
-
-.terminal-rate3 {
-  color: #8e44ad;
 }
 
 .money-cell {

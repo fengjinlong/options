@@ -5,7 +5,7 @@
         <el-card class="input-card" shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>📊 估值参数输入</span>
+              <span>📊 估值参数输入,白马股，可口可乐、沃尔玛、长江电力</span>
               <span class="unit-hint">单位: 亿美元 / 亿股</span>
             </div>
           </template>
@@ -245,7 +245,7 @@
               <div class="sensitivity-note">
                 <strong>💡 敏感性提示：</strong>该估值对 <strong>WACC</strong> 和 <strong>ROC</strong> 极其敏感。当前 WACC 为 {{ (form.wacc
                   *
-                100).toFixed(2) }}%，若上调 0.5%，估值将大幅缩水。
+                  100).toFixed(2) }}%，若上调 0.5%，估值将大幅缩水。
               </div>
             </div>
           </div>
@@ -392,7 +392,7 @@ interface Record {
 
 const showSaveModal = ref(false)
 const showHistoryModal = ref(false)
-const historyRecords = ref < Record[] > ([])
+const historyRecords = ref<Record[]>([])
 
 const saveForm = reactive({
   name: '',

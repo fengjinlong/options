@@ -28,6 +28,7 @@ const router = useRouter();
         <el-button type="success" @click="router.push('/dcf')">DCF估值分析</el-button>
         <!-- 成熟企业 dcf  -->
         <el-button type="success" @click="router.push('/dcf-maturity')">成熟企业DCF</el-button>
+        <el-button type="success" @click="router.push('/dcf-reverse')">DCF反向工程</el-button>
       </div>
     </header>
     <router-view></router-view>

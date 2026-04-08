@@ -93,6 +93,12 @@ const router = createRouter({
       path: "/dcf-maturity",
       name: "dcf-maturity",
       component: () => import("../views/DcfMaturity.vue"),
+    },
+    // dcf-reverse
+    {
+      path: "/dcf-reverse",
+      name: "dcf-reverse",
+      component: () => import("../views/DcfReverse.vue"),
     }
 
   ],
