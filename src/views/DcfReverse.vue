@@ -138,17 +138,14 @@
       </el-col>
 
       <el-col :xs="24" :md="14" :lg="14">
+        <div class="output-header">
+          <span class="output-title">📑 反向 DCF 估值分析报告</span>
+          <div class="action-buttons">
+            <el-button size="small" @click="openSaveModal" type="primary" :disabled="!reportGenerated">💾 保存</el-button>
+            <el-button size="small" @click="openHistoryModal" type="info">📋 记录</el-button>
+          </div>
+        </div>
         <el-card class="output-card" shadow="hover" v-if="reportGenerated">
-          <template #header>
-            <div class="card-header">
-              <span>📑 反向 DCF 估值分析报告</span>
-              <div class="action-buttons">
-                <el-button size="small" @click="openSaveModal" type="primary">💾 保存</el-button>
-                <el-button size="small" @click="openHistoryModal" type="info">📋 记录</el-button>
-              </div>
-            </div>
-          </template>
-
           <div class="report-content">
             <div class="report-section">
               <h3>一、数据回溯</h3>
@@ -277,7 +274,7 @@
           </div>
         </el-card>
 
-        <el-empty v-else description="请在左侧输入市场与财务数据并点击执行推导" />
+        <el-empty v-else class="output-empty" description="请在左侧输入市场与财务数据并点击执行推导" />
       </el-col>
     </el-row>
   </div>
@@ -641,6 +638,31 @@ onMounted(() => {
 .dcf-reverse-container {
   max-width: 1400px;
   margin: 0 auto;
+}
+
+/* 右侧报告头部 */
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+
+.output-title {
+  font-weight: bold;
+  font-size: 16px;
+  color: #303133;
+}
+
+.output-empty {
+  background: #fff;
+  padding: 40px 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
