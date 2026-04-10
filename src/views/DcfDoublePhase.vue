@@ -896,27 +896,3 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 </style>
-
-<hr style="margin: 40px 0; border: none; border-top: 1px solid #e9ecef; max-width: 1300px; margin-left: auto; margin-right: auto;">
-
-<!-- 模型适用说明 -->
-<div class="model-guide">
-  <h3>🟢 完美击球区（最适用）</h3>
-  <p>这类公司满足所有使用条件：<strong>有正向现金流、增速远超宏观经济、具备极深的护城河（能跨越周期成为收割者）</strong>。用这套模型给它们做压力测试，效果极佳。</p>
-
-  <ul>
-    <li><strong>AI 算力产业链（The Pick-and-Shovel Plays）：</strong>如英伟达 (NVDA)、AMD、博通 (AVGO)、台积电 (TSM)。由于处于风口，它们的短期增速极高，但由于半导体的周期属性，远期一定会回落，完美契合“高成长 → 稳态永续”的两阶段逻辑。</li>
-    <li><strong>跨越奇点的新能源/智驾寡头（The EV Leaders）：</strong>如特斯拉 (TSLA)、宁德时代 (CATL)。它们已度过疯狂烧钱期，开始产生巨额自由现金流，但市场对其未来 5 年的增速分歧极大（例如特斯拉到底是车企还是 AI 企业）。</li>
-    <li><strong>具备第二曲线的互联网巨头（The Platform Monopolies）：</strong>如 Meta（AI 赋能广告）、拼多多 (PDD)（Temu 跨境出海）。主营业务提供充沛的基期现金流，新业务提供高成长预期。</li>
-    <li><strong>高壁垒创新药/医疗器械寡头（The Healthcare Innovators）：</strong>如直觉外科 (ISRG)（手术机器人）、诺和诺德 (NVO) / 礼来 (LLY)（减肥药双雄）。在专利保护期内，它们能享受爆发式的利润增长。</li>
-  </ul>
-
-  <h3>🔴 绝对禁区（不可使用）</h3>
-  <p>遇到以下三类公司，请<strong>直接弃用本模型</strong>。如果强行套用，算出的隐含增速（CAGR）将毫无意义：</p>
-
-  <ol>
-    <li><strong>初创期/烧钱换增长的公司（如未盈利的 SaaS、Biotech）：</strong>自由现金流 (FCF) 为负数。数学公式无法对负数进行复合增长折现。应改用市销率 (P/S)、单用户价值或期权估值法。</li>
-    <li><strong>金融企业（银行、保险、券商）：</strong>它们的"债务"就是原材料，无法清晰界定"净债务"和纯粹的"自由现金流"。应改用股息折现模型 (DDM) 或 PB-ROE 模型。</li>
-    <li><strong>强周期性大宗商品（航运、煤炭、钢铁）：</strong>利润波动极其剧烈。用周期顶峰的暴利作为"基期现金流"去推演未来，会导致模型严重失真，错把周期顶部的估值陷阱当成便宜货。应改用席勒市盈率 (CAPE) 或市净率 (PB)。</li>
-  </ol>
-</div>
