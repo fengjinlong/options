@@ -99,7 +99,13 @@ const router = createRouter({
       path: "/dcf-reverse",
       name: "dcf-reverse",
       component: () => import("../views/DcfReverse.vue"),
-    }
+    },
+    // /dcf-double-phase
+    {
+      path: "/dcf-double-phase",
+      name: "dcf-double-phase",
+      component: () => import("../views/DcfDoublePhase.vue"),
+    },
 
   ],
 });

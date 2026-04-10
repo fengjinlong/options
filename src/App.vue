@@ -29,6 +29,8 @@ const router = useRouter();
         <!-- 成熟企业 dcf  -->
         <el-button type="success" @click="router.push('/dcf-maturity')">成熟企业DCF</el-button>
         <el-button type="success" @click="router.push('/dcf-reverse')">DCF反向工程</el-button>
+        <!-- 双阶段反向DCF 二分求解器 -->
+        <el-button type="success" @click="router.push('/dcf-double-phase')">双阶段反向DCF</el-button>
       </div>
     </header>
     <router-view></router-view>
