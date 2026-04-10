@@ -308,6 +308,16 @@
               {{ (row.impliedCagr * 100).toFixed(2) }}%
             </template>
           </el-table-column>
+          <el-table-column label="WACC" min-width="80">
+            <template #default="{ row }">
+              {{ (row.wacc * 100).toFixed(1) }}%
+            </template>
+          </el-table-column>
+          <el-table-column label="永续增长率" min-width="100">
+            <template #default="{ row }">
+              {{ (row.gTerm * 100).toFixed(1) }}%
+            </template>
+          </el-table-column>
           <el-table-column label="市场情绪" min-width="120">
             <template #default="{ row }">
               <el-tag :type="getSentimentTagType(row.impliedCagr)" size="small">
