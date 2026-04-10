@@ -296,36 +296,36 @@
       <div class="modal-body">
         <el-empty v-if="historyRecords.length === 0" description="暂无保存记录" />
         <el-table v-else :data="historyRecords" stripe style="width: 100%" max-height="400">
-          <el-table-column prop="name" label="标的名称" min-width="140" />
-          <el-table-column prop="date" label="日期" min-width="100" />
-          <el-table-column prop="params.stockPrice" label="股价" min-width="80">
+          <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
+          <el-table-column prop="date" label="日期" min-width="120" align="center" />
+          <el-table-column prop="params.stockPrice" label="股价" min-width="80" align="center">
             <template #default="{ row }">
               ${{ row.params.stockPrice }}
             </template>
           </el-table-column>
-          <el-table-column label="隐含 CAGR" min-width="100">
+          <el-table-column label="隐含 CAGR" min-width="100" align="center">
             <template #default="{ row }">
               {{ (row.impliedCagr * 100).toFixed(2) }}%
             </template>
           </el-table-column>
-          <el-table-column label="WACC" min-width="80">
+          <el-table-column label="WACC" min-width="80" align="center">
             <template #default="{ row }">
               {{ (row.wacc * 100).toFixed(1) }}%
             </template>
           </el-table-column>
-          <el-table-column label="永续增长率" min-width="100">
+          <el-table-column label="永续增长率" min-width="100" align="center">
             <template #default="{ row }">
               {{ (row.gTerm * 100).toFixed(1) }}%
             </template>
           </el-table-column>
-          <el-table-column label="市场情绪" min-width="120">
+          <el-table-column label="市场情绪" min-width="120" align="center">
             <template #default="{ row }">
               <el-tag :type="getSentimentTagType(row.impliedCagr)" size="small">
                 {{ getSentimentLabel(row.impliedCagr) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right">
+          <el-table-column label="操作" width="130" fixed="right" align="center">
             <template #default="{ $index }">
               <el-button size="small" type="primary" link @click="handleLoad($index)">加载</el-button>
               <el-button size="small" type="danger" link @click="handleDelete($index)">删除</el-button>
