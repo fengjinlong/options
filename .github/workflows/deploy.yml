@@ -3,7 +3,7 @@ name: Deploy to External Repo
 on:
   push:
     branches:
-      - master # 或者是 main
+      - main # 或者是 main
 
 jobs:
   build-and-deploy:
