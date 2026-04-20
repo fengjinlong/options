@@ -7,6 +7,7 @@
             <div class="card-header">
               <span>📊 市场与财务数据输入</span>
               <span class="unit-hint">单位: 亿美元 / 亿股</span>
+              <!-- <el-button style="position: absolute;" size="small" type="success" @click="handleCopyAll">复制表头</el-button> -->
             </div>
           </template>
 
@@ -365,6 +366,11 @@
       <div class="modal-body">
         <el-empty v-if="historyRecords.length === 0" description="暂无保存记录" />
         <el-table v-else :data="historyRecords" stripe style="width: 100%" max-height="400">
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 8px;">
+              <span>反向 DCF 估值记录</span>
+            </div>
+          </template>
           <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
           <el-table-column prop="date" label="日期" min-width="120" align="center" />
           <el-table-column label="隐含 WACC" min-width="100" align="center">
@@ -608,6 +614,18 @@ const getVerdictTagType = (wacc: number, g: number): '' | 'success' | 'danger' |
   if (wacc < 0.055) return 'danger'
   if (wacc <= 0.08) return 'warning'
   return 'success'
+}
+
+const handleCopyAll = async () => {
+  const header = ['标的名称', '日期', '股价', '隐含 WACC', '永续增长率', 'ROC', '现金', '债务', '营业利润', '税前利润', '所得税', '市场评级']
+
+  const text = [header.join('\t'),].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制表头')
+  } catch {
+    ElMessage.error('复制失败')
+  }
 }
 
 // ──────────────── 核心引擎 (加入金融护栏) ────────────────

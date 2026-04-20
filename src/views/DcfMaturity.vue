@@ -7,6 +7,7 @@
             <div class="card-header">
               <span>📊 估值参数输入,白马股，可口可乐、沃尔玛、长江电力</span>
               <span class="unit-hint">单位: 亿美元 / 亿股</span>
+              <!-- <el-button size="small" type="success" @click="handleCopyAll">复制表头</el-button> -->
             </div>
           </template>
 
@@ -193,7 +194,7 @@
                 <div class="step-box">
                   <div class="step-title">Step 1 计算基期利润</div>
                   <p>EBIT = {{ form.revenue }} × {{ form.operatingMargin }} = <strong>{{ calcResults.ebit.toFixed(2)
-                  }}</strong></p>
+                      }}</strong></p>
                   <p>NOPAT = {{ calcResults.ebit.toFixed(2) }} × (1 - {{ form.taxRate }}) = <strong>{{
                     calcResults.nopat.toFixed(2) }}</strong></p>
                 </div>
@@ -201,7 +202,7 @@
                 <div class="step-box">
                   <div class="step-title">Step 2 再投资效率</div>
                   <p>再投资率 = {{ form.g }} / {{ form.roc }} = <strong>{{ (calcResults.reinvestmentRate * 100).toFixed(2)
-                  }}%</strong></p>
+                      }}%</strong></p>
                 </div>
 
                 <div class="step-box">
@@ -312,6 +313,11 @@
       <div class="modal-body">
         <el-empty v-if="historyRecords.length === 0" description="暂无保存记录" />
         <el-table v-else :data="historyRecords" stripe style="width: 100%" max-height="400">
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 8px;">
+              <span>永续 DCF 估值记录</span>
+            </div>
+          </template>
           <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
           <el-table-column prop="date" label="日期" min-width="120" align="center" />
           <el-table-column label="内在价值" min-width="100" align="center">
@@ -500,6 +506,18 @@ const handleCopy = async (idx: number) => {
     ElMessage.success('已复制到剪贴板，可直接粘贴到 Excel')
   } catch {
     ElMessage.error('复制失败，请手动复制')
+  }
+}
+
+const handleCopyAll = async () => {
+  const header = ['标的名称', '日期', '内在价值', '当前价格', 'WACC', '永续增长率', '营收', '营业利润率', '税率', 'ROC', '现金', '债务', '股本', '折溢价']
+
+  const text = [header.join('\t'),].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制表头')
+  } catch {
+    ElMessage.error('复制失败')
   }
 }
 

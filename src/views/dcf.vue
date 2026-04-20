@@ -6,6 +6,7 @@
       <div class="input-section">
         <div class="section-title">
           <h2>📊 参数输入,高成长科技股,英伟达、特斯拉、拼多多</h2>
+          <!-- <el-button size="small" type="success" @click="handleCopyTitle">复制表头</el-button> -->
         </div>
         <div class="input-group">
           <div class="form-grid">
@@ -355,6 +356,12 @@
       </div>
       <div class="modal-body">
         <el-table :data="historyRecords" stripe style="width: 100%" max-height="400">
+          <!-- <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 8px;">
+              <span>估值记录1</span>
+              <el-button size="small" type="success" @click="handleCopyAll">复制全部</el-button>
+            </div>
+          </template> -->
           <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
           <el-table-column prop="date" label="日期" min-width="120" align="center" />
           <el-table-column label="当前价" min-width="100" align="center">
@@ -566,6 +573,44 @@ const handleCopy = async (idx: number) => {
     ElMessage.error('复制失败，请手动复制');
   }
 };
+
+const handleCopyAll = async () => {
+  const header = ['标的名称', '日期', '当前价', '5年 DCF', '10年 DCF', '20年 DCF', '折现率', '增长率 g', '增长率 g₂', '增长率 g₃', '永续增长率 g∞', '现金(亿)', '负债(亿)', '股本(亿)']
+  const rows = historyRecords.value.map(record => [
+    record.name,
+    record.date,
+    record.currentPrice?.toFixed(2),
+    record.dcf5Year?.toFixed(2),
+    record.dcf10Year?.toFixed(2),
+    record.dcf20Year?.toFixed(2),
+    record.params.discountRate?.toFixed(1) + '%',
+    record.params.growthRate?.toFixed(1) + '%',
+    record.params.terminalGrowthRate2?.toFixed(1) + '%',
+    record.params.terminalGrowthRate3?.toFixed(1) + '%',
+    record.params.terminalGrowthRate?.toFixed(1) + '%',
+    (record.params.cash * record.params.cashUnit / 100000000).toFixed(2),
+    (record.params.debt * record.params.debtUnit / 100000000).toFixed(2),
+    (record.params.shares * record.params.sharesUnit / 100000000).toFixed(2),
+  ])
+  const text = [header.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制全部数据到剪贴板')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+const handleCopyTitle = async () => {
+  const header = ['标的名称', '日期', '当前价', '5年 DCF', '10年 DCF', '20年 DCF', '折现率', '增长率 g', '增长率 g₂', '增长率 g₃', '永续增长率 g∞', '现金(亿)', '负债(亿)', '股本(亿)']
+
+  const text = [header.join('\t')].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制表头到剪贴板')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
 
 loadRecords();
 
