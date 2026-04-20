@@ -6,7 +6,7 @@
       <div class="input-section">
         <div class="section-title">
           <h2>📊 参数输入,高成长科技股,英伟达、特斯拉、拼多多</h2>
-          <!-- <el-button size="small" type="success" @click="handleCopyTitle">复制表头</el-button> -->
+          <el-button style="display: none;" size="small" type="success" @click="handleCopyTitle">复制表头</el-button>
         </div>
         <div class="input-group">
           <div class="form-grid">

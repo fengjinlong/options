@@ -5,7 +5,7 @@
       <p class="subtitle">通过拆解资产负债表细项，精准还原核心资产价值，反推隐含的 5 年复合增长率。</p>
     </div>
 
-    <!-- <el-button size="small" type="success" @click="handleCopyAll">复制表头</el-button> -->
+    <el-button style="display: none;" size="small" type="success" @click="handleCopyAll">复制表头</el-button>
     <el-row :gutter="24">
       <el-col :xs="24" :md="10" :lg="10">
         <el-card class="input-card" shadow="hover">

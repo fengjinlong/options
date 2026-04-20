@@ -7,7 +7,7 @@
             <div class="card-header">
               <span>📊 市场与财务数据输入</span>
               <span class="unit-hint">单位: 亿美元 / 亿股</span>
-              <!-- <el-button style="position: absolute;" size="small" type="success" @click="handleCopyAll">复制表头</el-button> -->
+              <el-button style="display: none;" size="small" type="success" @click="handleCopyAll">复制表头</el-button>
             </div>
           </template>
 
@@ -163,7 +163,7 @@
                     亿</span>
                 </div>
                 <div class="param-item"><span class="param-label">总债务</span><span class="param-value">{{ form.totalDebt
-                    }}
+                }}
                     亿</span></div>
                 <div class="param-item"><span class="param-label">营业利润</span><span class="param-value">{{
                   form.operatingProfit
@@ -215,7 +215,7 @@
                 </p>
                 <p>Next_Year_NOPAT = NOPAT × (1 + g)</p>
                 <p>= {{ results.nopat.toFixed(2) }} × (1 + {{ form.g }}) = <strong>{{ results.nextYearNopat.toFixed(2)
-                    }}</strong></p>
+                }}</strong></p>
                 <p>FCFF1 = Next_Year_NOPAT × (1 - Reinvestment_Rate)</p>
                 <p>= {{ results.nextYearNopat.toFixed(2) }} × (1 - {{ results.reinvestmentRate.toFixed(4) }}) =
                   <strong>{{
