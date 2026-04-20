@@ -1,45 +1,26 @@
-name: Deploy Vue3 to Server
+name: Deploy to External Repo
 
 on:
   push:
     branches:
-      - main
+      - master # 或者是 main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Install and Build 🔧
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          node-version: 18
-
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build Project
-        run: pnpm build
-
-      # - name: Deploy dist to Server
-      #   uses: appleboy/scp-action@v0.1.4
-      #   with:
-      #     host: 49.232.8.45
-      #     username: root
-      #     password: Web198743@
-      #     source: "dist/"
-      #     target: "/var/www"
-      - name: Deploy dist to Server
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: 117.72.63.11
-          username: root
-          password: Web198743@
-          source: "dist/"
-          target: "/var/www"
+          token: ${{ secrets.MY_DEPLOY_TOKEN }}
+          repository-name: fengjinlong/fengjinlong.github.io
+          branch: master # 对于 <username>.github.io 仓库，请确保这是你的展示分支
+          folder: dist
