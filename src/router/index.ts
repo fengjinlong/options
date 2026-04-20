@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 import StrategyList from "../components/StrategyList.vue";
 import OptionCalendarChart from "../components/OptionCalendarChart.vue";
 import SolVolatility from "../views/SolVolatility.vue";
@@ -15,7 +15,7 @@ import Pe from "../views/Pe.vue";
 import Dcf from "../views/dcf.vue";
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
     {
       path: "/",
