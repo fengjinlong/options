@@ -200,6 +200,8 @@ UsPeValuation.vue
 
 在 `eps.json` 中添加新条目：
 
+利润表的 基本每股收益 数据
+
 ```json
 {
   "新股票代码": [
