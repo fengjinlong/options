@@ -5,6 +5,7 @@
       <p class="subtitle">通过拆解资产负债表细项，精准还原核心资产价值，反推隐含的 5 年复合增长率。</p>
     </div>
 
+    <el-button size="small" type="success" @click="handleCopyAll">复制表头</el-button>
     <el-row :gutter="24">
       <el-col :xs="24" :md="10" :lg="10">
         <el-card class="input-card" shadow="hover">
@@ -519,7 +520,32 @@ const sentimentDesc = computed(() => {
 
 // ──────────────── 保存 / 历史记录 ────────────────
 const STORAGE_KEY = 'dcf_double_phase_records'
-
+const handleCopyAll = async () => {
+  const header = ['标的名称', '日期', '股价', '隐含 CAGR', 'WACC', '永续增长率', '股本', '经营现金流', '资本支出', '其他非现金项目', '广义现金', '短期债务', '长期债务', '市场情绪']
+  const rows = historyRecords.value.map(record => [
+    record.name,
+    record.date,
+    record.params.stockPrice,
+    (record.impliedCagr * 100).toFixed(2) + '%',
+    (record.wacc * 100).toFixed(2) + '%',
+    (record.gTerm * 100).toFixed(2) + '%',
+    record.params.shares,
+    record.params.operatingCashFlow,
+    record.params.fixedAssetChange,
+    record.params.otherNonCashItems,
+    record.params.cashAndST,
+    record.params.shortTermDebt,
+    record.params.longTermDebt,
+    getSentimentLabel(record.impliedCagr)
+  ])
+  const text = [header.join('\t'), ...rows.map(r => r.join('\t'))].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制全部数据到剪贴板')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
 // 估值记录数据结构
 interface ValuationRecord {
   id: number

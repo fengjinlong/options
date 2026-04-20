@@ -365,23 +365,39 @@
       <div class="modal-body">
         <el-empty v-if="historyRecords.length === 0" description="暂无保存记录" />
         <el-table v-else :data="historyRecords" stripe style="width: 100%" max-height="400">
-          <el-table-column prop="name" label="标的名称" width="120" />
-          <el-table-column prop="date" label="日期" width="110" />
-          <el-table-column label="隐含 WACC" width="110">
+          <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
+          <el-table-column prop="date" label="日期" min-width="120" align="center" />
+          <el-table-column label="隐含 WACC" min-width="100" align="center">
             <template #default="{ row }">
               {{ (row.impliedWacc * 100).toFixed(2) }}%
             </template>
           </el-table-column>
-          <el-table-column label="市场评级" width="120">
+          <el-table-column label="永续增长率" min-width="100" align="center">
+            <template #default="{ row }">
+              {{ (row.g * 100).toFixed(2) }}%
+            </template>
+          </el-table-column>
+          <el-table-column label="ROC" min-width="80" align="center">
+            <template #default="{ row }">
+              {{ (row.roc * 100).toFixed(1) }}%
+            </template>
+          </el-table-column>
+          <el-table-column label="股价" min-width="80" align="center">
+            <template #default="{ row }">
+              ${{ row.params.stockPrice }}
+            </template>
+          </el-table-column>
+          <el-table-column label="市场评级" min-width="120" align="center">
             <template #default="{ row }">
               <el-tag :type="getVerdictTagType(row.impliedWacc, row.g)" size="small">
                 {{ getVerdictLabel(row.impliedWacc, row.g) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right" align="center">
             <template #default="{ $index }">
               <el-button size="small" type="primary" link @click="handleLoad($index)">加载</el-button>
+              <el-button size="small" type="success" link @click="handleCopy($index)">复制</el-button>
               <el-button size="small" type="danger" link @click="handleDelete($index)">删除</el-button>
             </template>
           </el-table-column>
@@ -553,6 +569,31 @@ const handleDelete = (idx: number) => {
   historyRecords.value.splice(idx, 1)
   persistRecords()
   ElMessage.info('记录已删除')
+}
+
+const handleCopy = async (idx: number) => {
+  const record = historyRecords.value[idx]
+  const row = [
+    record.name,
+    record.date,
+    record.params.stockPrice,
+    (record.impliedWacc * 100).toFixed(2) + '%',
+    (record.g * 100).toFixed(2) + '%',
+    (record.roc * 100).toFixed(2) + '%',
+    record.params.cash,
+    record.params.totalDebt,
+    record.params.operatingProfit,
+    record.params.preTaxIncome,
+    record.params.incomeTax,
+    getVerdictLabel(record.impliedWacc, record.g)
+  ]
+  const text = row.join('\t')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制到剪贴板，可直接粘贴到 Excel')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
 }
 
 const getVerdictLabel = (wacc: number, g: number): string => {
@@ -937,7 +978,7 @@ onMounted(() => {
 }
 
 .modal-history {
-  width: 700px;
+  width: 900px;
 }
 
 .modal-header {

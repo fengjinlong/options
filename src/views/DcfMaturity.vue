@@ -312,20 +312,30 @@
       <div class="modal-body">
         <el-empty v-if="historyRecords.length === 0" description="暂无保存记录" />
         <el-table v-else :data="historyRecords" stripe style="width: 100%" max-height="400">
-          <el-table-column prop="name" label="标的名称" width="120" center />
-          <el-table-column prop="date" label="日期" width="110" />
-          <el-table-column label="内在价值" width="110">
+          <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
+          <el-table-column prop="date" label="日期" min-width="120" align="center" />
+          <el-table-column label="内在价值" min-width="100" align="center">
             <template #default="{ row }">
               $ {{ row.valuePerShare?.toFixed(2) }}
             </template>
           </el-table-column>
-          <el-table-column label="当前价格" width="110">
+          <el-table-column label="当前价格" min-width="100" align="center">
             <template #default="{ row }">
               <template v-if="row.currentPrice">$ {{ row.currentPrice.toFixed(2) }}</template>
               <template v-else>-</template>
             </template>
           </el-table-column>
-          <el-table-column label="折溢价" width="80">
+          <el-table-column label="WACC" min-width="80" align="center">
+            <template #default="{ row }">
+              {{ (row.params.wacc * 100).toFixed(1) }}%
+            </template>
+          </el-table-column>
+          <el-table-column label="永续增长率" min-width="100" align="center">
+            <template #default="{ row }">
+              {{ (row.params.g * 100).toFixed(1) }}%
+            </template>
+          </el-table-column>
+          <el-table-column label="折溢价" min-width="80" align="center">
             <template #default="{ row }">
               <el-tag v-if="row.currentPrice" :type="getVerdictTagType(row)" size="small">
                 {{ getVerdictText(row) }}
@@ -333,9 +343,10 @@
               <template v-else>-</template>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right">
+          <el-table-column label="操作" width="180" fixed="right" align="center">
             <template #default="{ $index }">
               <el-button size="small" type="primary" link @click="handleLoad($index)">加载</el-button>
+              <el-button size="small" type="success" link @click="handleCopy($index)">复制</el-button>
               <el-button size="small" type="danger" link @click="handleDelete($index)">删除</el-button>
             </template>
           </el-table-column>
@@ -463,6 +474,33 @@ const handleDelete = (idx: number) => {
   historyRecords.value.splice(idx, 1)
   persistRecords()
   ElMessage.info('记录已删除')
+}
+
+const handleCopy = async (idx: number) => {
+  const record = historyRecords.value[idx]
+  const row = [
+    record.name,
+    record.date,
+    record.valuePerShare?.toFixed(2),
+    record.currentPrice?.toFixed(2) ?? '-',
+    (record.params.wacc * 100).toFixed(1) + '%',
+    (record.params.g * 100).toFixed(1) + '%',
+    record.params.revenue,
+    (record.params.operatingMargin * 100).toFixed(2) + '%',
+    (record.params.taxRate * 100).toFixed(2) + '%',
+    (record.params.roc * 100).toFixed(2) + '%',
+    record.params.cash,
+    record.params.totalDebt,
+    record.params.dilutedShares,
+    getVerdictText(record)
+  ]
+  const text = row.join('\t')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制到剪贴板，可直接粘贴到 Excel')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
 }
 
 const getVerdictText = (record: Record): string => {
@@ -747,7 +785,7 @@ const calculateValuation = () => {
 }
 
 .modal-history {
-  width: 700px;
+  width: 900px;
 }
 
 .modal-header {

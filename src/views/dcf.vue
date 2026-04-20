@@ -354,41 +354,43 @@
         <button class="modal-close" @click="showHistoryModal = false">&times;</button>
       </div>
       <div class="modal-body">
-        <div v-if="historyRecords.length === 0" class="empty-tip">
-          暂无保存记录
-        </div>
-        <table v-else class="history-table">
-          <thead>
-            <tr>
-              <th>标的名称</th>
-              <th>日期</th>
-              <th>当前价</th>
-              <th>5年 DCF</th>
-              <th>10年 DCF</th>
-              <th>20年 DCF</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(record, idx) in historyRecords" :key="record.id">
-              <td class="name-cell">{{ record.name }}</td>
-              <td>{{ record.date }}</td>
-              <td>{{ record.currentPrice?.toFixed(2) }} 元</td>
-              <td :class="record.dcf5Year > record.currentPrice ? 'green' : 'red'">
-                {{ record.dcf5Year?.toFixed(2) }} 元
-              </td>
-              <td :class="record.dcf10Year > record.currentPrice ? 'green' : 'red'">
-                {{ record.dcf10Year?.toFixed(2) }} 元
-              </td>
-              <td :class="record.dcf20Year > record.currentPrice ? 'green' : 'red'">
-                {{ record.dcf20Year?.toFixed(2) }} 元
-              </td>
-              <td>
-                <button class="del-btn" @click="handleDelete(idx)" type="button">删除</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table :data="historyRecords" stripe style="width: 100%" max-height="400">
+          <el-table-column prop="name" label="标的名称" min-width="120" align="center" />
+          <el-table-column prop="date" label="日期" min-width="120" align="center" />
+          <el-table-column label="当前价" min-width="100" align="center">
+            <template #default="{ row }">
+              {{ row.currentPrice?.toFixed(2) }} 元
+            </template>
+          </el-table-column>
+          <el-table-column label="5年 DCF" min-width="100" align="center">
+            <template #default="{ row }">
+              <span :style="{ color: row.dcf5Year > row.currentPrice ? '#67c23a' : '#f56c6c', fontWeight: 600 }">
+                {{ row.dcf5Year?.toFixed(2) }} 元
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="10年 DCF" min-width="100" align="center">
+            <template #default="{ row }">
+              <span :style="{ color: row.dcf10Year > row.currentPrice ? '#67c23a' : '#f56c6c', fontWeight: 600 }">
+                {{ row.dcf10Year?.toFixed(2) }} 元
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="20年 DCF" min-width="100" align="center">
+            <template #default="{ row }">
+              <span :style="{ color: row.dcf20Year > row.currentPrice ? '#67c23a' : '#f56c6c', fontWeight: 600 }">
+                {{ row.dcf20Year?.toFixed(2) }} 元
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="180" fixed="right" align="center">
+            <template #default="{ $index }">
+              <el-button size="small" type="primary" link @click="handleLoad($index)">加载</el-button>
+              <el-button size="small" type="success" link @click="handleCopy($index)">复制</el-button>
+              <el-button size="small" type="danger" link @click="handleDelete($index)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
   </div>
@@ -461,6 +463,7 @@ interface Record {
   dcf5Year: number;
   dcf10Year: number;
   dcf20Year: number;
+  params: typeof params;
 }
 
 const showSaveModal = ref(false);
@@ -512,6 +515,7 @@ const handleSave = () => {
     dcf5Year: saveForm.dcf5Year,
     dcf10Year: saveForm.dcf10Year,
     dcf20Year: saveForm.dcf20Year,
+    params: { ...params },
   };
   historyRecords.value.unshift(record);
   persistRecords();
@@ -524,9 +528,42 @@ const openHistoryModal = () => {
 };
 
 const handleDelete = (idx: number) => {
-  if (confirm('确定删除该记录？')) {
-    historyRecords.value.splice(idx, 1);
-    persistRecords();
+  historyRecords.value.splice(idx, 1);
+  persistRecords();
+};
+
+const handleLoad = (idx: number) => {
+  const record = historyRecords.value[idx];
+  Object.assign(params, record.params);
+  calculate();
+  showHistoryModal.value = false;
+  ElMessage.success(`已加载: ${record.name}`);
+};
+
+const handleCopy = async (idx: number) => {
+  const record = historyRecords.value[idx];
+  const row = [
+    record.name,
+    record.date,
+    record.currentPrice?.toFixed(2),
+    record.dcf5Year?.toFixed(2),
+    record.dcf10Year?.toFixed(2),
+    record.dcf20Year?.toFixed(2),
+    record.params.discountRate?.toFixed(1) + '%',
+    record.params.growthRate?.toFixed(1) + '%',
+    record.params.terminalGrowthRate2?.toFixed(1) + '%',
+    record.params.terminalGrowthRate3?.toFixed(1) + '%',
+    record.params.terminalGrowthRate?.toFixed(1) + '%',
+    record.params.cash * record.params.cashUnit / 100000000,
+    record.params.debt * record.params.debtUnit / 100000000,
+    record.params.shares * record.params.sharesUnit / 100000000,
+  ];
+  const text = row.join('\t');
+  try {
+    await navigator.clipboard.writeText(text);
+    ElMessage.success('已复制到剪贴板，可直接粘贴到 Excel');
+  } catch {
+    ElMessage.error('复制失败，请手动复制');
   }
 };
 
@@ -1083,7 +1120,7 @@ const formatMoney = (value: number | string | null | undefined): string => {
 }
 
 .modal-history {
-  width: 700px;
+  width: 900px;
 }
 
 .modal-header {
