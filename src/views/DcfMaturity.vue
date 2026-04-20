@@ -193,7 +193,7 @@
                 <div class="step-box">
                   <div class="step-title">Step 1 计算基期利润</div>
                   <p>EBIT = {{ form.revenue }} × {{ form.operatingMargin }} = <strong>{{ calcResults.ebit.toFixed(2)
-                      }}</strong></p>
+                  }}</strong></p>
                   <p>NOPAT = {{ calcResults.ebit.toFixed(2) }} × (1 - {{ form.taxRate }}) = <strong>{{
                     calcResults.nopat.toFixed(2) }}</strong></p>
                 </div>
@@ -201,7 +201,7 @@
                 <div class="step-box">
                   <div class="step-title">Step 2 再投资效率</div>
                   <p>再投资率 = {{ form.g }} / {{ form.roc }} = <strong>{{ (calcResults.reinvestmentRate * 100).toFixed(2)
-                      }}%</strong></p>
+                  }}%</strong></p>
                 </div>
 
                 <div class="step-box">
