@@ -325,9 +325,10 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right" align="center">
+          <el-table-column label="操作" width="180" fixed="right" align="center">
             <template #default="{ $index }">
               <el-button size="small" type="primary" link @click="handleLoad($index)">加载</el-button>
+              <el-button size="small" type="success" link @click="handleCopy($index)">复制</el-button>
               <el-button size="small" type="danger" link @click="handleDelete($index)">删除</el-button>
             </template>
           </el-table-column>
@@ -603,6 +604,34 @@ const handleDelete = (idx: number) => {
   historyRecords.value.splice(idx, 1)
   persistRecords()
   ElMessage.info('记录已删除')
+}
+
+// 复制当前行数据到剪贴板（制表符分隔，粘贴 Excel 自动分列）
+const handleCopy = async (idx: number) => {
+  const record = historyRecords.value[idx]
+  const row = [
+    record.name,
+    record.date,
+    record.params.stockPrice,
+    (record.impliedCagr * 100).toFixed(2) + '%',
+    (record.wacc * 100).toFixed(2) + '%',
+    (record.gTerm * 100).toFixed(2) + '%',
+    record.params.shares,
+    record.params.operatingCashFlow,
+    record.params.fixedAssetChange,
+    record.params.otherNonCashItems,
+    record.params.cashAndST,
+    record.params.shortTermDebt,
+    record.params.longTermDebt,
+    getSentimentLabel(record.impliedCagr)
+  ]
+  const text = row.join('\t')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制到剪贴板，可直接粘贴到 Excel')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
 }
 
 // 根据隐含 CAGR 获取情绪标签文本
