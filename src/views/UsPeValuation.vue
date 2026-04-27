@@ -241,7 +241,8 @@ function onSymbolChange() {
 
 // ==================== 核心算法：计算每日 PE TTM ====================
 function deriveReportDate(epsEntry) {
-  const quarterToMonth = { Q1: '05-01', Q2: '08-01', Q3: '11-01', Q4: '02-01' }
+  if (epsEntry.overrideReportDate) return epsEntry.overrideReportDate
+  const quarterToMonth = { Q1: '04-15', Q2: '07-15', Q3: '10-15', Q4: '01-15' }
   const monthDay = quarterToMonth[epsEntry.quarter] || '05-01'
   const reportYear = epsEntry.quarter === 'Q4' ? epsEntry.year + 1 : epsEntry.year
   return `${reportYear}-${monthDay}`
