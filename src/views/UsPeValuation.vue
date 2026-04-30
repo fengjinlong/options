@@ -109,7 +109,7 @@ import epsJson from './eps.json'
 
 // ==================== 共享状态 ====================
 const symbol = ref('NVDA')
-const symbolOptions = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'KO', 'MSFT', 'AMZN', 'TSM']
+const symbolOptions = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'KO', 'MSFT', 'AMZN', 'TSM', 'META']
 const epsData = ref([])
 
 // FMP API Key
