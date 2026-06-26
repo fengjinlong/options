@@ -31,6 +31,8 @@ const router = useRouter();
         <el-button type="success" @click="router.push('/dcf-reverse')">DCF反向工程</el-button>
         <!-- 双阶段反向DCF 二分求解器 -->
         <el-button type="success" @click="router.push('/dcf-double-phase')">双阶段反向DCF</el-button>
+        <!-- 开仓审计大脑 -->
+        <el-button type="success" @click="router.push('/open-audit')">开仓审计</el-button>
       </div>
     </header>
     <router-view></router-view>

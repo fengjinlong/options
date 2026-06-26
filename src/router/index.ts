@@ -106,6 +106,12 @@ const router = createRouter({
       name: "dcf-double-phase",
       component: () => import("../views/DcfDoublePhase.vue"),
     },
+    // 开仓审计大脑
+    {
+      path: "/open-audit",
+      name: "open-audit",
+      component: () => import("../views/OpenAudit.vue"),
+    },
 
   ],
 });

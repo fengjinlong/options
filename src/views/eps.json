@@ -60,7 +60,8 @@
     { "year": 2025, "quarter": "Q2", "eps": 1.65 },
     { "year": 2025, "quarter": "Q3", "eps": 1.57 },
     { "year": 2025, "quarter": "Q4", "eps": 1.85 },
-    { "year": 2026, "quarter": "Q1", "eps": 2.84 }
+    { "year": 2026, "quarter": "Q1", "eps": 2.84 },
+    { "year": 2026, "quarter": "Q2", "eps": 10.01}
   ],
   "TSLA": [
     { "year": 2023, "quarter": "Q1", "eps": 0.73 },
