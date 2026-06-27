@@ -1,5 +1,6 @@
 <template>
   <div class="pe-analyzer">
+    <!-- 顶部：股票选择器 -->
     <el-card class="box-card" style="margin-bottom: 12px">
       <template #header>
         <div class="card-header">
@@ -8,14 +9,17 @@
       </template>
       <el-form :inline="true">
         <el-form-item label="股票代码">
-          <el-select v-model="symbol" filterable allow-create placeholder="输入股票代码" style="width: 200px">
+          <el-select v-model="symbol" filterable allow-create placeholder="输入股票代码" style="width: 200px"
+            @change="onSymbolChange">
             <el-option v-for="item in symbolOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </el-form-item>
       </el-form>
     </el-card>
 
+    <!-- 三面板：1年 | 2年 | 3年 -->
     <div class="panels-row">
+      <!-- ===== 1 年面板 ===== -->
       <div class="panel-wrap">
         <el-card class="box-card" v-loading="panel1.loading">
           <template #header>
@@ -41,6 +45,7 @@
         </el-card>
       </div>
 
+      <!-- ===== 2 年面板 ===== -->
       <div class="panel-wrap">
         <el-card class="box-card" v-loading="panel2.loading">
           <template #header>
@@ -66,6 +71,7 @@
         </el-card>
       </div>
 
+      <!-- ===== 3 年面板 ===== -->
       <div class="panel-wrap">
         <el-card class="box-card" v-loading="panel3.loading">
           <template #header>
@@ -95,39 +101,21 @@
 </template>
 
 <script setup lang="js">
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch, markRaw } from 'vue'
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted, shallowRef, watch, markRaw } from 'vue'
 import axios from 'axios'
 import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import epsJson from './eps.json'
 
 // ==================== 共享状态 ====================
-const symbol = ref('AAPL')
+const symbol = ref('NVDA')
 const symbolOptions = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'KO', 'MSFT', 'AMZN', 'TSM', 'META']
+const epsData = ref([])
 
 // FMP API Key
 const FMP_API_KEY = 'wQdt9jraXnrDCjOJVwELhblzjyBEXbI3'
 
-// ==================== 建立完全响应式 EPS 数据流（突破 Vite HMR 阻塞） ====================
-const epsData = computed(() => {
-  const entries = epsJson[symbol.value]
-  if (entries && entries.length > 0) {
-    return entries.map(e => ({
-      year: e.year,
-      quarter: e.quarter,
-      eps: e.eps,
-      overrideReportDate: e.overrideReportDate
-    }))
-  }
-  // 降级本地缓存
-  const raw = localStorage.getItem(`pe_eps_${symbol.value}`)
-  if (raw) {
-    try { return JSON.parse(raw) } catch { return [] }
-  }
-  return []
-})
-
-// ==================== 三面板独立状态 ====================
+// ==================== 双面板独立状态 ====================
 function createPanel() {
   return reactive({
     data: [],
@@ -143,7 +131,7 @@ const chartRef1 = ref(null)
 const chartRef2 = ref(null)
 const chartRef3 = ref(null)
 
-// ==================== 每面板的 computed 统计指标 ====================
+// ==================== 每面板的 computed（直接引用 panel.data）====================
 const panel1CurrentPe = computed(() => panel1.data.length > 0 ? panel1.data[panel1.data.length - 1].pe : 0)
 const panel1Percentile = computed(() => {
   if (panel1.data.length === 0) return 0
@@ -204,12 +192,72 @@ const panel3PercentileLevels = computed(() => {
   ]
 })
 
-// ==================== 核心量化算法 ====================
-function calculateTtmEpsForDate(priceDate, epsEntriesWithDate) {
-  const available = epsEntriesWithDate.filter(e => e._reportDate <= priceDate)
+// ==================== EPS 数据来源（从 eps.json 加载）====================
+function loadEpsFromJson(sym) {
+  const entries = epsJson[sym]
+  if (!entries || entries.length === 0) return null
+  return entries.map(e => ({ year: e.year, quarter: e.quarter, eps: e.eps }))
+}
+
+function loadFromStorage() {
+  const fromJson = loadEpsFromJson(symbol.value)
+  if (fromJson) {
+    epsData.value = fromJson
+    return true
+  }
+  const raw = localStorage.getItem(`pe_eps_${symbol.value}`)
+  if (raw) {
+    try {
+      epsData.value = JSON.parse(raw)
+      return true
+    } catch {
+      return false
+    }
+  }
+  return false
+}
+
+function onSymbolChange() {
+  const hasEpsData = loadFromStorage()
+  if (!hasEpsData) {
+    panel1.loading = false
+    panel2.loading = false
+    panel3.loading = false
+    ElMessage.warning(`暂无 ${symbol.value} 的 EPS 数据，请先在 eps.json 中添加`)
+    return
+  }
+
+  panel1.data = []
+  panel1.chartInstance?.dispose()
+  panel1.chartInstance = null
+  panel2.data = []
+  panel2.chartInstance?.dispose()
+  panel2.chartInstance = null
+  panel3.data = []
+  panel3.chartInstance?.dispose()
+  panel3.chartInstance = null
+  autoFetchAll()
+}
+
+// ==================== 核心算法：计算每日 PE TTM ====================
+function deriveReportDate(epsEntry) {
+  if (epsEntry.overrideReportDate) return epsEntry.overrideReportDate
+  const quarterToMonth = { Q1: '04-15', Q2: '07-15', Q3: '10-15', Q4: '01-15' }
+  const monthDay = quarterToMonth[epsEntry.quarter] || '05-01'
+  const reportYear = epsEntry.quarter === 'Q4' ? epsEntry.year + 1 : epsEntry.year
+  return `${reportYear}-${monthDay}`
+}
+
+function calculateTtmEpsForDate(priceDate, epsEntries) {
+  const epsWithDate = epsEntries.map(e => ({ ...e, _reportDate: deriveReportDate(e) }))
+  const available = epsWithDate
+    .filter(e => e._reportDate <= priceDate)
+    .sort((a, b) => a._reportDate.localeCompare(b._reportDate))
+
   if (available.length < 4) {
     return { ttmEps: 0, usedQuarters: [], hasEnoughData: false }
   }
+
   const recent4 = available.slice(-4)
   return {
     ttmEps: recent4.reduce((sum, e) => sum + e.eps, 0),
@@ -246,7 +294,7 @@ function buildDailyPeSeries(priceResult, epsEntries, historyYears) {
   return results
 }
 
-// ==================== FMP 价格接口 ====================
+// ==================== 价格数据获取（FMP API）====================
 async function getPriceFmp(symbolStr, apiKey, historyYears) {
   const baseUrl = 'https://financialmodelingprep.com/stable'
   const today = new Date()
@@ -275,7 +323,7 @@ async function getPriceFmp(symbolStr, apiKey, historyYears) {
   return { symbol: symbolStr, daily_prices: dailyCloseDict }
 }
 
-// ==================== 单面板异步流水线 ====================
+// ==================== 单面板数据获取 ====================
 async function fetchPanel(panel, years) {
   const validEps = epsData.value.filter(r => r.year && r.quarter && r.eps !== null && r.eps !== undefined && r.eps !== 0)
   if (validEps.length < 4) return
@@ -284,46 +332,15 @@ async function fetchPanel(panel, years) {
   panel.data = []
 
   try {
-    // 1. 先把股价拉回来拿到最新的真实交易日边界
-    const priceResult = await getPriceFmp(symbol.value, FMP_API_KEY, years)
-    const dailyPrices = priceResult.daily_prices
-    const sortedDates = Object.keys(dailyPrices).sort()
-    if (sortedDates.length === 0) return
-
-    // 锚定最新交易日（如 2026-06-26 星期五），解决绝对日历时间脱节问题
-    const latestPriceDate = sortedDates[sortedDates.length - 1]
-
-    // 2. 清洗并严格按财报时间序正向排列
-    const sortedEps = validEps
-      .map(e => ({
-        year: Number(e.year),
-        quarter: e.quarter,
-        eps: Number(e.eps),
-        overrideReportDate: e.overrideReportDate
-      }))
+    const epsEntries = validEps
+      .map(e => ({ year: Number(e.year), quarter: e.quarter, eps: Number(e.eps) }))
       .sort((a, b) => {
         if (a.year !== b.year) return a.year - b.year
         return ['Q1', 'Q2', 'Q3', 'Q4'].indexOf(a.quarter) - ['Q1', 'Q2', 'Q3', 'Q4'].indexOf(b.quarter)
       })
 
-    // 3. 动态对齐：为每一项财报计算或指派 _reportDate
-    const epsEntries = sortedEps.map((e, idx) => {
-      let rDate = e.overrideReportDate
-      if (!rDate) {
-        const quarterToMonth = { Q1: '04-15', Q2: '07-15', Q3: '10-15', Q4: '01-15' }
-        const monthDay = quarterToMonth[e.quarter] || '05-01'
-        const reportYear = e.quarter === 'Q4' ? e.year + 1 : e.year
-        rDate = `${reportYear}-${monthDay}`
-      }
-
-      // 核心修复：如果是全集里最后一条最新预期数据，且披露日在未来
-      // 强制将其失效左边界收缩至最新股价日，使其在当前盘面上强行生效
-      if (idx === sortedEps.length - 1 && rDate > latestPriceDate) {
-        rDate = latestPriceDate
-      }
-
-      return { ...e, _reportDate: rDate }
-    })
+    const priceResult = await getPriceFmp(symbol.value, FMP_API_KEY, years)
+    if (Object.keys(priceResult.daily_prices).length === 0) return
 
     const dailyPeData = buildDailyPeSeries(priceResult, epsEntries, years)
     if (dailyPeData.length === 0) return
@@ -336,18 +353,7 @@ async function fetchPanel(panel, years) {
   }
 }
 
-function clearAllCharts() {
-  panel1.data = []
-  panel1.chartInstance?.dispose()
-  panel1.chartInstance = null
-  panel2.data = []
-  panel2.chartInstance?.dispose()
-  panel2.chartInstance = null
-  panel3.data = []
-  panel3.chartInstance?.dispose()
-  panel3.chartInstance = null
-}
-
+// ==================== 自动加载 ====================
 async function autoFetchAll() {
   await Promise.all([
     fetchPanel(panel1, 1),
@@ -356,20 +362,7 @@ async function autoFetchAll() {
   ])
 }
 
-// ==================== 智能数据监听器（处理代码/数据源变更） ====================
-watch(epsData, (newVal) => {
-  if (!newVal || newVal.length < 4) {
-    panel1.loading = false
-    panel2.loading = false
-    panel3.loading = false
-    ElMessage.warning(`暂无 ${symbol.value} 的 EPS 数据，请先在 eps.json 中添加`)
-    return
-  }
-  clearAllCharts()
-  autoFetchAll()
-}, { immediate: true })
-
-// ==================== Echarts 渲染器 ====================
+// ==================== 图表渲染（watcher 触发）====================
 function safeRenderChart(panel, chartRefEl, years) {
   if (!chartRefEl || !panel.data.length) return
 
@@ -423,12 +416,20 @@ function safeRenderChart(panel, chartRefEl, years) {
       data: ['PE(TTM)', '10%分位', '50%分位', '90%分位', '当前'],
       top: 38,
     },
-    grid: { left: '6%', right: '8%', top: 80, bottom: '14%' },
+    grid: {
+      left: '6%',
+      right: '8%',
+      top: 80,
+      bottom: '14%',
+    },
     xAxis: {
       type: 'category',
       data: dates,
       boundaryGap: false,
-      axisLabel: { rotate: 30, fontSize: 9 },
+      axisLabel: {
+        rotate: 30,
+        fontSize: 9,
+      },
     },
     yAxis: {
       type: 'value',
@@ -468,10 +469,26 @@ function safeRenderChart(panel, chartRefEl, years) {
           lineStyle: { width: 1 },
           label: { fontSize: 10, position: 'insideEndTop' },
           data: [
-            { yAxis: p10, lineStyle: { color: '#52c41a', type: 'dashed' }, label: { formatter: `10% (${p10.toFixed(1)})`, color: '#52c41a' } },
-            { yAxis: p50, lineStyle: { color: '#faad14', type: 'dashed' }, label: { formatter: `50% (${p50.toFixed(1)})`, color: '#faad14' } },
-            { yAxis: p90, lineStyle: { color: '#f5222d', type: 'dashed' }, label: { formatter: `90% (${p90.toFixed(1)})`, color: '#f5222d' } },
-            { yAxis: cur, lineStyle: { color: '#722ed1', type: 'solid', width: 2 }, label: { formatter: `当前 (${cur.toFixed(1)})`, color: '#722ed1' } },
+            {
+              yAxis: p10,
+              lineStyle: { color: '#52c41a', type: 'dashed' },
+              label: { formatter: `10% (${p10.toFixed(1)})`, color: '#52c41a' },
+            },
+            {
+              yAxis: p50,
+              lineStyle: { color: '#faad14', type: 'dashed' },
+              label: { formatter: `50% (${p50.toFixed(1)})`, color: '#faad14' },
+            },
+            {
+              yAxis: p90,
+              lineStyle: { color: '#f5222d', type: 'dashed' },
+              label: { formatter: `90% (${p90.toFixed(1)})`, color: '#f5222d' },
+            },
+            {
+              yAxis: cur,
+              lineStyle: { color: '#722ed1', type: 'solid', width: 2 },
+              label: { formatter: `当前 (${cur.toFixed(1)})`, color: '#722ed1' },
+            },
           ],
         },
         markArea: {
@@ -489,7 +506,7 @@ function safeRenderChart(panel, chartRefEl, years) {
   panel.chartInstance.setOption(option, true)
 }
 
-// 侦听 DOM 节点和数据的就绪状态
+// watch chartRef + panel.data，等两者都就绪再渲染
 watch([() => chartRef1.value, () => panel1.data], ([el, data]) => {
   if (el && data.length > 0) nextTick(() => safeRenderChart(panel1, el, 1))
 })
@@ -500,8 +517,10 @@ watch([() => chartRef3.value, () => panel3.data], ([el, data]) => {
   if (el && data.length > 0) nextTick(() => safeRenderChart(panel3, el, 3))
 })
 
-// ==================== 生命周期管理 ====================
+// ==================== 生命周期 ====================
 onMounted(() => {
+  loadFromStorage()
+  autoFetchAll()
   window.addEventListener('resize', handleResize)
 })
 
